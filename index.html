@@ -1,0 +1,827 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Computer Vision 9 post read</title>
+<meta name="description" content="Computer Vision 9 post read: object segmentation: semantic masks, transposed convolution, Dice and IoU, FCN-8, U-Net and Mask R-CNN.">
+<style>
+:root{
+  --v950:#1e0b4b;--v900:#2e1065;--v800:#4c1d95;--v700:#6d28d9;--v600:#7c3aed;--v500:#8b5cf6;
+  --v400:#a78bfa;--v300:#c4b5fd;--v200:#ddd6fe;--v100:#ede9fe;--v50:#f5f3ff;
+  --ink:#1f1637;--muted:#5a4f78;--line:#e4dcfa;
+}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+html{scroll-behavior:smooth;scroll-padding-top:84px}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}*{transition:none!important;animation:none!important}}
+body{margin:0;background:#fff;color:var(--ink);font:17px/1.7 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased}
+h1,h2,h3{font-family:Georgia,"Iowan Old Style","Times New Roman",serif;line-height:1.2;color:var(--v900);margin:0}
+h2{font-size:clamp(1.7rem,3.4vw,2.3rem);margin:0 0 .7rem}
+h3{font-size:1.35rem;margin:2.2rem 0 .5rem}
+h4{font-size:1.02rem;margin:1.2rem 0 .3rem;color:var(--v800)}
+p{margin:.75rem 0}
+p,ul,ol{max-width:70ch}
+li{margin:.3rem 0}
+a{color:var(--v700)}
+code{font:.88em ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;background:var(--v100);color:var(--v800);padding:.1em .35em;border-radius:5px}
+:focus-visible{outline:3px solid var(--v500);outline-offset:2px;border-radius:4px}
+.vh{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0 0 0 0);white-space:nowrap}
+.skip{position:absolute;left:-999px;top:8px;background:var(--v900);color:#fff;padding:.5rem 1rem;z-index:100;border-radius:8px}
+.skip:focus{left:8px}
+
+/* header */
+.top{position:sticky;top:0;z-index:50;background:rgba(255,255,255,.94);backdrop-filter:blur(8px);border-bottom:1px solid var(--line)}
+.top .in{max-width:1040px;margin:0 auto;padding:.6rem 20px;display:flex;align-items:center;justify-content:space-between;gap:12px}
+.brand{font:700 1.05rem Georgia,serif;color:var(--v900);text-decoration:none;display:flex;align-items:center;gap:10px}
+.brand i{width:18px;height:18px;border-radius:4px;background:conic-gradient(var(--v700) 25%,var(--v300) 0 50%,var(--v500) 0 75%,var(--v900) 0);display:inline-block}
+#bar{height:3px;background:var(--v600);width:0;transition:width .1s}
+.btn{font:600 .9rem system-ui,sans-serif;background:var(--v700);color:#fff;border:2px solid var(--v700);border-radius:10px;padding:7px 14px;cursor:pointer}
+.btn:hover{background:var(--v800);border-color:var(--v800)}
+.btn:disabled{opacity:.45;cursor:not-allowed}
+.btn.ghost{background:#fff;color:var(--v700)}
+.btn.ghost:hover{background:var(--v50)}
+.btn.sm{padding:4px 10px;font-size:.82rem}
+#toc{position:absolute;right:max(20px,calc(50% - 520px));top:100%;width:min(360px,calc(100vw - 40px));max-height:70vh;overflow:auto;background:#fff;border:1px solid var(--line);border-radius:14px;box-shadow:0 18px 40px -12px rgba(46,16,101,.35);padding:10px}
+#toc ol{list-style:none;margin:0;padding:0;max-width:none}
+#toc a{display:flex;gap:10px;padding:7px 10px;border-radius:8px;text-decoration:none;color:var(--ink);font-size:.95rem;line-height:1.35}
+#toc a b{color:var(--v600);font-variant-numeric:tabular-nums;min-width:1.6em}
+#toc a:hover,#toc a[aria-current=true]{background:var(--v100);color:var(--v900)}
+#toc a[aria-current=true]{font-weight:700}
+
+/* hero */
+.hero{color:#fff;padding:84px 20px 92px;background-color:var(--v900);
+  background-image:linear-gradient(rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.07) 1px,transparent 1px),linear-gradient(135deg,var(--v950),var(--v700));
+  background-size:30px 30px,30px 30px,100% 100%}
+.hero .in{max-width:900px;margin:0 auto}
+.eyebrow{font:700 .78rem system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--v200)}
+.hero h1{color:#fff;font-size:clamp(2.3rem,6.5vw,4rem);margin:.4rem 0 1rem}
+.hero p{font-size:1.2rem;color:var(--v100);max-width:56ch}
+.hero .cta{margin-top:1.6rem;display:flex;gap:12px;flex-wrap:wrap}
+.hero .btn{background:#fff;color:var(--v800);border-color:#fff}
+.hero .btn.ghost{background:transparent;color:#fff;border-color:var(--v300)}
+
+/* sections */
+main section{padding:60px 20px;border-bottom:1px solid var(--line)}
+main section:nth-of-type(even){background:var(--v50)}
+main section>.in{max-width:940px;margin:0 auto}
+.kicker{display:inline-block;font:700 .78rem system-ui;letter-spacing:.14em;text-transform:uppercase;color:var(--v600);margin-bottom:.35rem}
+.callout{border-left:5px solid var(--v600);background:var(--v100);padding:12px 18px;border-radius:0 14px 14px 0;margin:1.2rem 0;max-width:70ch}
+.callout p{margin:.3rem 0}
+.note{font-size:.88rem;color:var(--muted)}
+.formula{font:italic 1.2rem Georgia,serif;text-align:center;background:var(--v900);color:#fff;border-radius:14px;padding:14px 18px;margin:16px 0;overflow-x:auto;max-width:none}
+.formula small{display:block;font:.8rem system-ui;color:var(--v200);font-style:normal;margin-top:4px}
+.grid3{display:grid;grid-template-columns:repeat(auto-fit,minmax(240px,1fr));gap:14px;margin:16px 0}
+.card{border:1px solid var(--line);border-radius:14px;padding:16px 18px;background:#fff}
+.card h4{margin:0 0 .3rem;font-size:1.05rem;color:var(--v900)}
+.card p{margin:.3rem 0;font-size:.97rem}
+.card.dark{background:var(--v900);color:#fff;border-color:var(--v900)}
+.card.dark h4{color:#fff}
+.tag{display:inline-block;font:700 .72rem system-ui;letter-spacing:.06em;text-transform:uppercase;padding:3px 8px;border-radius:999px;background:var(--v100);color:var(--v800)}
+
+/* widgets */
+.widget{background:#fff;border:1px solid var(--line);border-radius:18px;padding:18px;margin:24px 0;box-shadow:0 8px 26px -14px rgba(76,29,149,.35)}
+.wtag{display:inline-block;font:700 .7rem system-ui;letter-spacing:.1em;text-transform:uppercase;color:var(--v700);background:var(--v100);padding:5px 10px;border-radius:999px;margin-bottom:8px}
+.wtitle{font:700 1.12rem/1.3 Georgia,serif;color:var(--v900);margin:0 0 4px}
+.wdesc{color:var(--muted);font-size:.93rem;margin:0 0 12px;max-width:none}
+.ctrl{display:flex;flex-wrap:wrap;gap:10px 18px;align-items:center;margin:8px 0 14px}
+.seg{display:inline-flex;flex-wrap:wrap}
+.seg button{font:600 .85rem system-ui,sans-serif;border:1.5px solid var(--v300);background:#fff;color:var(--v800);padding:6px 12px;cursor:pointer;margin-left:-1.5px}
+.seg button:first-child{border-radius:10px 0 0 10px;margin-left:0}
+.seg button:last-child{border-radius:0 10px 10px 0}
+.seg button:only-child{border-radius:10px}
+.seg button:hover{background:var(--v50)}
+.seg button[aria-pressed=true]{background:var(--v700);border-color:var(--v700);color:#fff;position:relative;z-index:1}
+select,input[type=number]{font:inherit;font-size:.9rem;padding:6px 8px;border:1.5px solid var(--v300);border-radius:8px;background:#fff;color:var(--v900)}
+input[type=number]{width:92px}
+input[type=range]{accent-color:var(--v600)}
+label.sel,label.chk,label.fld{font-size:.88rem;color:var(--muted);display:flex;align-items:center;gap:6px}
+label.fld{flex-direction:column;align-items:flex-start;gap:3px;font-weight:600}
+.mat{display:grid;gap:3px;grid-template-columns:repeat(var(--c),minmax(0,1fr))}
+.cell{aspect-ratio:1;display:flex;align-items:center;justify-content:center;text-align:center;font:600 clamp(.6rem,1.7vw,.88rem)/1.1 ui-monospace,Menlo,monospace;border-radius:6px;background:var(--v50);color:var(--v900);border:1.5px solid var(--v200);padding:0;margin:0}
+button.cell{cursor:pointer}
+button.cell:hover{border-color:var(--v700)}
+.cell.win{outline:3px solid var(--v900);outline-offset:-2px;z-index:1}
+.cell.pad{background:repeating-linear-gradient(45deg,#fff,#fff 4px,var(--v100) 4px,var(--v100) 8px);color:var(--muted);border-style:dashed}
+.cell.neg{border:2px dashed var(--v900)}
+.cell.cur{outline:3px solid var(--v900);outline-offset:-2px}
+.cell.on{background:var(--v700);color:#fff;border-color:var(--v700)}
+.cell.ghost{border:2px dashed var(--v700)}
+.cell.sel{outline:3px solid var(--v900);outline-offset:-2px}
+.bars{display:grid;gap:6px}
+.brow{display:grid;grid-template-columns:minmax(78px,150px) 1fr 62px;gap:10px;align-items:center;font-size:.9rem}
+.bl{font-weight:600;color:var(--v900)}
+.bt{background:var(--v100);border-radius:6px;height:16px;overflow:hidden;display:block}
+.bf{display:block;height:100%;background:var(--v700);border-radius:6px;transition:width .25s}
+.bv{font-variant-numeric:tabular-nums;text-align:right;color:var(--muted)}
+.readout{margin-top:12px;padding:10px 14px;background:var(--v50);border:1px solid var(--line);border-radius:12px;font-size:.93rem;max-width:none}
+.readout b{color:var(--v900)}
+.fig{margin:14px 0}
+.fig img{max-width:100%;height:auto;border-radius:12px;border:1px solid var(--line);display:block;margin:0 auto}
+.fig figcaption{font-size:.85rem;color:var(--muted);text-align:center;margin-top:6px}
+.fb{display:none;padding:18px;border:2px dashed var(--v300);border-radius:12px;color:var(--muted);font-size:.9rem;text-align:center}
+.fig.broken .fb{display:block}
+.fig.broken img{display:none}
+.duo{display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:14px}
+
+/* tabs */
+.tabs{margin:18px 0}
+.tablist{display:flex;gap:4px;flex-wrap:wrap;border-bottom:2px solid var(--line);margin-bottom:14px}
+.tablist button{font:600 .92rem system-ui,sans-serif;background:none;border:0;border-bottom:3px solid transparent;color:var(--muted);padding:9px 14px;cursor:pointer;margin-bottom:-2px;border-radius:8px 8px 0 0}
+.tablist button:hover{color:var(--v800);background:var(--v50)}
+.tablist button[aria-selected=true]{color:var(--v800);border-bottom-color:var(--v700);background:var(--v100)}
+[role=tabpanel]:focus-visible{outline-offset:6px}
+
+/* code + tables */
+details.code{border:1px solid var(--line);border-radius:12px;margin:14px 0;background:#fff;overflow:hidden}
+details.code summary{cursor:pointer;padding:10px 14px;font:600 .9rem system-ui;color:var(--v800);background:var(--v50)}
+details.code[open] summary{border-bottom:1px solid var(--line)}
+pre{margin:0;padding:14px 16px;overflow:auto;background:var(--v950);color:var(--v100);font:13px/1.6 ui-monospace,SFMono-Regular,Menlo,Consolas,monospace}
+.tw{overflow-x:auto;margin:14px 0}
+table{border-collapse:collapse;width:100%;font-size:.92rem}
+th,td{padding:8px 12px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+th{background:var(--v100);color:var(--v900);font-weight:700}
+td.n,th.n{text-align:right;font-variant-numeric:tabular-nums}
+
+/* specific widgets */
+.pxwrap{display:grid;grid-template-columns:minmax(0,420px) 1fr;gap:20px;align-items:start}
+.pxgrid{gap:2px}
+.pxgrid .cell{border-radius:3px;border:0;font-size:clamp(.5rem,1.4vw,.68rem)}
+.vrow{display:flex;align-items:center;gap:8px;margin:5px 0}
+.vl{font-weight:800;color:var(--v800);width:44px;font-size:.82rem}
+.vcells{display:grid;grid-template-columns:repeat(9,minmax(0,1fr));gap:3px;flex:1}
+.vcells .cell{aspect-ratio:auto;height:34px;font-size:clamp(.55rem,1.5vw,.78rem)}
+.flat{display:grid;grid-template-columns:130px 1fr;gap:22px;align-items:start}
+.flat .mat{max-width:130px}
+.srow{display:grid;grid-template-columns:72px minmax(90px,1fr) 42px minmax(90px,1fr) 58px;gap:10px;align-items:center;margin:8px 0;font-size:.9rem}
+.srow input{width:100%}
+.zv{font-variant-numeric:tabular-nums;color:var(--muted);text-align:right}
+.mx{display:grid;grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:18px;align-items:start}
+.layers{list-style:none;margin:0;padding:0;max-width:none;display:grid;gap:6px}
+.lay{width:100%;display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,.9fr) minmax(0,1fr);gap:8px;align-items:center;text-align:left;font:inherit;font-size:.86rem;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink)}
+.lay:hover{border-color:var(--v400)}
+.lay[aria-pressed=true]{border-color:var(--v700);background:var(--v50);box-shadow:inset 4px 0 0 var(--v700)}
+.lay .ln{font-weight:700;color:var(--v900)}
+.lay .ls{color:var(--muted);font-variant-numeric:tabular-nums}
+.lay .lp{font-variant-numeric:tabular-nums;font-weight:600;text-align:right}
+.lay .lb{grid-column:1/-1;height:6px;background:var(--v100);border-radius:4px;overflow:hidden}
+.lay .lb i{display:block;height:100%;background:var(--v600)}
+.ldetail{background:var(--v900);color:#fff;border-radius:14px;padding:16px 18px;position:sticky;top:90px}
+.ldetail h4{color:#fff;margin:0 0 6px}
+.ldetail p{margin:.4rem 0;font-size:.92rem;color:var(--v100)}
+.ldetail code{background:rgba(255,255,255,.14);color:#fff}
+.legend{display:flex;gap:16px;flex-wrap:wrap;font-size:.85rem;color:var(--muted);margin:6px 0}
+.legend i{display:inline-block;width:26px;height:0;border-top:3px solid var(--v900);vertical-align:middle;margin-right:6px}
+.plot{touch-action:pan-y;outline-offset:2px}
+.plot svg{width:100%;height:auto;display:block}
+.cx{display:grid;grid-template-columns:minmax(0,1.45fr) minmax(0,.7fr) minmax(0,.7fr) minmax(0,1fr);gap:16px;align-items:start}
+.pl{font:700 .78rem system-ui;color:var(--v800);margin-bottom:6px;letter-spacing:.02em}
+.sum{margin-top:8px;font-size:.95rem}
+.stepbar{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:14px}
+.stepbar input[type=range]{flex:1;min-width:140px}
+.cmp{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:12px;margin:14px 0}
+.stat{border:1px solid var(--line);border-radius:14px;padding:14px 16px;background:#fff}
+.stat .k{font:700 .74rem system-ui;letter-spacing:.08em;text-transform:uppercase;color:var(--muted)}
+.stat .v{font:700 1.7rem Georgia,serif;color:var(--v900)}
+.stat .s{font-size:.85rem;color:var(--muted)}
+.vs{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.vs div{padding:8px 10px;border-radius:10px;background:var(--v50)}
+.vs div.win{background:var(--v900);color:#fff}
+.vs small{display:block;font-size:.72rem;letter-spacing:.06em;text-transform:uppercase;opacity:.8}
+.vs b{font:700 1.3rem Georgia,serif}
+.flow{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:16px 0;max-width:none}
+.flow span{background:#fff;border:1.5px solid var(--v300);color:var(--v900);padding:8px 12px;border-radius:10px;font:600 .9rem system-ui}
+.flow i{color:var(--v600);font-style:normal;font-weight:800}
+.cortex{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:8px;align-items:stretch}
+.cortex .rl{font:700 .75rem system-ui;color:var(--muted);text-transform:uppercase;letter-spacing:.06em;display:flex;align-items:center}
+.cortex button{font:inherit;border:1.5px solid var(--line);background:#fff;border-radius:12px;padding:10px 8px;cursor:pointer;text-align:center;color:var(--ink);font-size:.84rem}
+.cortex button:hover{border-color:var(--v400)}
+.cortex button[aria-pressed=true]{background:var(--v900);color:#fff;border-color:var(--v900)}
+.cortex svg{width:40px;height:40px;display:block;margin:0 auto 4px}
+.cortex button b{display:block;font-size:.86rem}
+.opt{display:flex;gap:10px;align-items:flex-start;border:1.5px solid var(--line);border-radius:12px;padding:10px 14px;margin:8px 0;cursor:pointer;background:#fff}
+.opt:hover{border-color:var(--v400)}
+.opt input{margin-top:5px;accent-color:var(--v700)}
+.opt.ok{background:var(--v900);color:#fff;border-color:var(--v900)}
+.opt.bad{border:2px dashed var(--v900);background:var(--v50)}
+.opt .mk{margin-left:auto;font-weight:700;font-size:.82rem;white-space:nowrap}
+fieldset{border:0;padding:0;margin:0}
+legend{font-weight:700;color:var(--v900);padding:0;margin-bottom:6px}
+.qa{display:flex;gap:10px;margin-top:10px}
+footer{background:var(--v950);color:var(--v200);text-align:center;padding:36px 20px;font:700 1rem Georgia,serif}
+footer small{display:block;font:.8rem system-ui;opacity:.7;margin-top:4px}
+
+@media (max-width:820px){
+  .pxwrap,.flat,.mx{grid-template-columns:1fr}
+  .cx{grid-template-columns:1fr 1fr}
+  .cx .pn-in{grid-column:1/-1}
+  .ldetail{position:static}
+  .cortex{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .cortex .rl{grid-column:1/-1}
+}
+@media (max-width:640px){
+  body{font-size:16px}
+  main section{padding:44px 16px}
+  .srow{grid-template-columns:72px 1fr 42px}
+  .srow .bt{grid-column:2}
+  .srow .bv{grid-column:3}
+  .brow{grid-template-columns:84px 1fr 54px}
+}
+/* L2 additions */
+.maps{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px}
+.maps .mat{gap:2px}
+.maps .cell{border-radius:3px;border:0;font-size:clamp(.5rem,1.4vw,.72rem)}
+.mapbtn{border:2px solid transparent;background:none;border-radius:10px;padding:4px;cursor:pointer;text-align:left;font:inherit}
+.mapbtn:hover{border-color:var(--v300)}
+.mapbtn[aria-pressed=true]{border-color:var(--v700);background:var(--v50)}
+.outrow{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
+.outrow .cell{width:34px;height:34px;aspect-ratio:auto;border-radius:5px;font-size:.7rem}
+.neurons{gap:3px;max-width:420px}
+.neurons .cell{border-radius:4px;border:0;font-size:0}
+.neurons .cell.on{background:var(--v700)}
+.neurons .cell.off{background:repeating-linear-gradient(45deg,#fff,#fff 3px,var(--v200) 3px,var(--v200) 6px);border:1.5px dashed var(--v300)}
+.meter{height:12px;background:var(--v100);border-radius:6px;overflow:hidden;margin:4px 0 10px}
+.meter i{display:block;height:100%;background:var(--v700);transition:width .2s}
+.meter.warn i{background:var(--v900)}
+.mrow{font-size:.9rem;color:var(--ink)}
+.mrow b{color:var(--v900)}
+.lsteps{list-style:none;counter-reset:s;padding:0;margin:12px 0;max-width:none;display:grid;gap:8px}
+.lsteps li{counter-increment:s;display:flex;gap:12px;align-items:center;border:1.5px solid var(--line);border-radius:12px;padding:9px 12px;background:#fff;margin:0}
+.lsteps li::before{content:counter(s);flex:none;width:28px;height:28px;border-radius:50%;background:var(--v700);color:#fff;display:flex;align-items:center;justify-content:center;font:700 .85rem system-ui}
+.lsteps li.skip{border-style:dashed;background:var(--v50);color:var(--muted)}
+.lsteps li.skip::before{background:var(--v300)}
+.lsteps li .tg{margin-left:auto;font:700 .72rem system-ui;letter-spacing:.06em;text-transform:uppercase;color:var(--v800);background:var(--v100);padding:3px 8px;border-radius:999px;white-space:nowrap}
+.augg{display:grid;grid-template-columns:repeat(auto-fit,minmax(120px,1fr));gap:10px;margin:12px 0}
+.augg figure{margin:0;text-align:center}
+.augg svg{width:100%;height:auto;display:block;border:1px solid var(--line);border-radius:10px;background:#fff}
+.augg figcaption{font:600 .78rem system-ui;color:var(--muted);margin-top:4px}
+.vols{width:100%;height:auto;display:block;margin:6px 0 10px}
+.vols g[role=button]{cursor:pointer}
+.vols g:focus-visible{outline:none}
+.vols g:focus-visible rect:first-of-type{stroke-width:4}
+.rbars{display:grid;gap:8px}
+.rb{display:grid;grid-template-columns:minmax(120px,210px) 1fr 64px;gap:10px;align-items:center;text-align:left;font:inherit;font-size:.9rem;background:#fff;border:1.5px solid var(--line);border-radius:10px;padding:8px 10px;cursor:pointer;color:var(--ink);width:100%}
+.rb:hover{border-color:var(--v400)}
+.rb[aria-pressed=true]{border-color:var(--v700);background:var(--v50);box-shadow:inset 4px 0 0 var(--v700)}
+.rb .bl{font-weight:700}
+.rb .bt{height:18px;position:relative}
+.rb .zone{position:absolute;top:0;bottom:0;left:0;background:repeating-linear-gradient(45deg,var(--v200),var(--v200) 3px,#fff 3px,#fff 6px);opacity:.9}
+.rb .bf{position:relative}
+.mt td,.mt th{text-align:center;padding:6px 8px}
+.mt td:first-child,.mt th:first-child{text-align:left}
+.yes{font-weight:800;color:var(--v700)}
+.no{color:var(--v300)}
+pre.prompt{white-space:pre-wrap;word-break:break-word;border-radius:12px;font-size:13px}
+.hint{font-size:.85rem;color:var(--muted)}
+.cardlink{display:inline-block;margin-top:.4rem;font-weight:700;font-size:.9rem}
+@media (max-width:640px){
+  .maps{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .rb{grid-template-columns:90px 1fr 54px}
+}
+td.hl{background:var(--v100);font-weight:700}
+label.sel{flex-wrap:wrap;max-width:100%}
+label.sel select{max-width:100%;min-width:0}
+@media (max-width:640px){label.sel{width:100%}label.sel select{width:100%}}
+.yes{white-space:nowrap}
+@media (max-width:640px){.plot svg text{font-size:19px}.vols text{font-size:18px}}
+p code,li code,td code{overflow-wrap:anywhere}
+@media (max-width:640px){.widget .tw th,.widget .tw td{padding:6px 5px;font-size:.74rem}}
+.readout pre{overflow-x:auto;max-width:100%}
+.seg{max-width:100%;flex-wrap:wrap}
+.brow{grid-template-columns:minmax(70px,150px) minmax(0,1fr) auto}.brow .bl{overflow-wrap:anywhere}
+.readout{overflow-wrap:anywhere}
+
+</style>
+</head>
+<body>
+<a class="skip" href="#main">Skip to content</a>
+<header class="top">
+  <div class="in">
+    <a class="brand" href="#top"><i aria-hidden="true"></i>Computer Vision 9 post read</a>
+    <button class="btn ghost sm" id="tocBtn" aria-expanded="false" aria-controls="toc">Contents</button>
+  </div>
+  <div id="bar" aria-hidden="true"></div>
+  <nav id="toc" aria-label="Contents" hidden><ol></ol></nav>
+</header>
+
+<div class="hero" id="top">
+  <div class="in">
+    <div class="eyebrow">Deep Learning · Computer Vision</div>
+    <h1>Computer Vision 9 post read</h1>
+    <p>How does a phone keep you sharp and blur the background in a portrait selfie? It labels every pixel as person or background. We build a synthetic portrait dataset, learn transposed convolutions and the Dice and IoU metrics, train FCN-8 and U-Net, stress-test the result, and finish with Mask R-CNN for instance masks.</p>
+    <div class="cta"><a class="btn" href="#problem">Start reading</a><a class="btn ghost" href="#unet">Jump to U-Net</a></div>
+  </div>
+</div>
+
+<main id="main">
+
+<section id="problem" data-title="Why segmentation">
+<div class="in">
+  <span class="kicker">01</span>
+  <h2>Why segmentation?</h2>
+  <p>You are a Machine Learning Engineer on the Google Pixel camera team. Portrait mode keeps the person sharp and blurs the background, so the camera must <b>separate the person from the background in every selfie</b>.</p>
+  <ul>
+    <li><b>Classification</b> says what is in the image. It is too coarse: it gives no location.</li>
+    <li><b>Detection</b> adds a box. A box is sometimes not precise enough: in tumour detection, for example, the tissue marked in red has a complex shape that no box can follow.</li>
+    <li><b>Image segmentation</b> works at pixel level. It labels every pixel, so it can trace very complex boundaries.</li>
+  </ul>
+  <div data-fig="mot,why"></div>
+  <p>With a box the blur would either leave background around the person or cut into them. A pixel mask lets the blur stop exactly at the outline.</p>
+</div>
+</section>
+
+<section id="types" data-title="Semantic vs instance">
+<div class="in">
+  <span class="kicker">02</span>
+  <h2>Semantic vs instance segmentation</h2>
+  <div class="widget" data-w="tasks"></div>
+  <div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+    <div class="card"><span class="tag">Semantic</span><h4>Category per pixel</h4><p>Every pixel gets a class (sky, grass, tree, person). All pixels of the same class share one label, so three people get the same “person” label. Background pixels are labelled too.</p></div>
+    <div class="card"><span class="tag">Instance</span><h4>Object per pixel</h4><p>Detects each object, then labels its pixels, so each person gets a different ID.</p></div>
+  </div>
+  <p>Our business case has <b>one person per selfie</b>, so we do not need instance segmentation: person vs background is a two-class semantic problem. The same principles still apply to instance segmentation, which we return to with Mask R-CNN.</p>
+  <div data-fig="tasks,inst"></div>
+  <details class="code"><summary>Code: the group scene</summary><pre data-code="scene"></pre></details>
+  <div class="widget" data-w="quiz" data-q="q1"></div>
+</div>
+</section>
+
+<section id="data" data-title="The synthetic dataset">
+<div class="in">
+  <span class="kicker">03</span>
+  <h2>A synthetic portrait dataset</h2>
+  <p>Real labelled masks are expensive, so the lecture generates portraits with code. Each image is <b>128 × 128</b> with its exact mask known by construction.</p>
+  <ul>
+    <li><b>Training set:</b> 1,000 images (seed 0). <b>Test set:</b> 250 images (seed 100000).</li>
+    <li>Backgrounds include distractor shapes that copy skin and hair colours, so colour alone cannot find the person.</li>
+    <li>Lighting, head tilt and size vary, and sometimes an object occludes the person.</li>
+    <li>Images have shape (1000, 128, 128, 3); masks have shape (1000, 128, 128) with values {0, 255}.</li>
+  </ul>
+  <div data-fig="port"></div>
+  <details class="code"><summary>Code: portrait generator and dataset</summary><pre data-code="generator"></pre><pre data-code="data"></pre></details>
+  <h3>Encoding the mask</h3>
+  <p>We map the mask to <b>1 = person, 0 = background</b>. <code>F.one_hot</code> turns it into one channel per class, giving shape (3, 128, 128, 2) for three masks: the last axis holds the background and person channels.</p>
+  <div data-fig="enc"></div>
+  <h3>Class balance</h3>
+  <p>Person pixels average <b>28.1%</b> of an image (min 14.6%, max 45.4%). A model that predicts background everywhere would already reach <b>71.9%</b> pixel accuracy.</p>
+  <div class="widget" data-w="bal"></div>
+  <details class="code"><summary>Code: encoding and balance</summary><pre data-code="balance"></pre></details>
+</div>
+</section>
+
+<section id="arch" data-title="Architecture and transposed convolution">
+<div class="in">
+  <span class="kicker">04</span>
+  <h2>Designing a segmentation network</h2>
+  <p>We predict a label for every pixel, so the output must have the same height and width as the input. Each class needs one channel, so the output shape is <b>(batch, number of classes, H, W)</b>. For us that is (batch, 2, 128, 128).</p>
+  <div data-fig="out"></div>
+  <h3>“What” and “where”</h3>
+  <p>Deep layers know <b>what</b> is in the image (person or background); shallow layers know <b>where</b> things are. Segmentation needs both: “what” decides the label and “where” gives the exact boundary. Classification models throw away the “where” information, so we connect early layers to later layers with <b>skip connections</b>.</p>
+  <div data-fig="wwhere"></div>
+  <h3>Why not keep full resolution?</h3>
+  <p>Keeping the full resolution in every layer would leave the receptive field small and make the computation expensive. Instead we use an <b>encoder–decoder</b>: the encoder is a classification backbone without its fully connected layers, which shrinks the image and builds “what” features; the decoder grows the size back to full resolution.</p>
+  <h3>Transposed convolution</h3>
+  <p>A transposed convolution is a <b>learnable upsampling layer</b>. It is sometimes called a deconvolution, but that name is misleading: it does not undo a convolution value by value. It only restores the spatial size. A convolution that shrinks a 6 × 6 map to 3 × 3 has a transposed counterpart that grows 3 × 3 back to 6 × 6, but the values are different.</p>
+  <div data-fig="t1"></div>
+  <ol>
+    <li>Place the input cells <b>stride</b> apart on a grid of zeros (the intermediate grid).</li>
+    <li>Pad that grid with <b>k − 1</b> zeros on each side.</li>
+    <li>Slide the kernel with step 1; padding then removes rings from the output.</li>
+  </ol>
+  <div data-fig="t2,t3,t4"></div>
+  <div class="callout"><p>Normal convolution: <b>out = ⌊(in + 2p − k) / s⌋ + 1</b><br>Transposed convolution: <b>out = (in − 1) · s − 2p + k</b><br>In PyTorch this layer is <code>torch.nn.ConvTranspose2d</code>.</p></div>
+  <div data-fig="tf"></div>
+  <div class="widget" data-w="convt"></div>
+  <details class="code"><summary>Code: checking the formula in PyTorch</summary><pre data-code="convt"></pre></details>
+  <div class="widget" data-w="quiz" data-q="q2"></div>
+</div>
+</section>
+
+<section id="metrics" data-title="Metrics and loss">
+<div class="in">
+  <span class="kicker">05</span>
+  <h2>Measuring a mask: IoU, Dice and the loss</h2>
+  <p>Cross-entropy alone has two weaknesses here: <b>class imbalance</b> (background dominates, as we saw) and it looks at pixels one at a time instead of the overall shape of the mask. We add overlap metrics.</p>
+  <div class="grid3" style="grid-template-columns:repeat(auto-fit,minmax(240px,1fr))">
+    <div class="card"><span class="tag">IoU</span><h4>Intersection over union</h4><p>overlap / union. Used in object detection; it works for masks too.</p></div>
+    <div class="card"><span class="tag">Dice</span><h4>Dice coefficient</h4><p>2 · overlap / (predicted + true).</p></div>
+  </div>
+  <div data-fig="i1,d1"></div>
+  <div class="callout"><p><b>IoU = Dice / (2 − Dice)</b> and <b>Dice = 2 · IoU / (1 + IoU)</b>. So IoU is never higher than Dice: a statement that “IoU is always higher than Dice” is false.</p></div>
+  <p><b>Worked example.</b> Truth is a 2 × 2 block in the centre of a 4 × 4 grid (4 pixels); the prediction covers 2 × 3 pixels (6 pixels) including all of the truth. Overlap 4: Dice = 2·4/(4+6) = <b>0.800</b>, IoU = 4/6 = <b>0.667</b>.</p>
+  <div class="widget" data-w="dice"></div>
+  <h3>Training loss</h3>
+  <p>Dice is also used as a loss: <b>Dice loss = 1 − Dice</b>, computed on the predicted person probability. We combine it with cross-entropy:</p>
+  <div class="callout"><p><code>seg_loss = CE + (1 − dice(person_prob, target == 1))</code></p></div>
+  <details class="code"><summary>Code: metrics, loaders, loss and training helpers</summary><pre data-code="metrics"></pre><pre data-code="helpers"></pre></details>
+  <div class="widget" data-w="quiz" data-q="q3"></div>
+</div>
+</section>
+
+<section id="fcn" data-title="FCN-8">
+<div class="in">
+  <span class="kicker">06</span>
+  <h2>FCN-8: a fully convolutional network</h2>
+  <p>FCN-8 uses a <b>pretrained VGG-16 encoder</b> (frozen) split at pool3, pool4 and pool5, and a decoder that fuses coarse predictions with finer ones.</p>
+  <div data-fig="fcn1,fcn2"></div>
+  <ul>
+    <li>pool3: 256 × 16 × 16, pool4: 512 × 8 × 8, pool5: 512 × 4 × 4, conv7: 4096 × 4 × 4, output: 2 × 128 × 128.</li>
+    <li>Decoder: score7 → ConvTranspose 2× + score4 (from pool4) → ConvTranspose 2× + score3 (from pool3) → 8× upsampling.</li>
+    <li>The skip scores are <b>added</b> to the upsampled predictions.</li>
+    <li>Trainable parameters: <b>119,555,878</b>.</li>
+  </ul>
+  <div class="widget" data-w="arch"></div>
+  <details class="code"><summary>Code: FCN-8 and its training</summary><pre data-code="fcn"></pre></details>
+  <h3>Training result</h3>
+  <p>After 15 epochs FCN-8 reaches test Dice 0.9271 and pixel accuracy 0.9591 (epoch 1: Dice 0.6138, accuracy 0.7550). Its masks follow the person but with a coarse outline.</p>
+  <div data-fig="fr1,fr2"></div>
+</div>
+</section>
+
+<section id="unet" data-title="U-Net">
+<div class="in">
+  <span class="kicker">07</span>
+  <h2>U-Net</h2>
+  <p>(<a href="https://arxiv.org/pdf/1505.04597.pdf">Original paper</a>.) U-Net is an encoder–decoder with a skip connection at <b>every</b> resolution, and the skips are <b>concatenated</b>, not added.</p>
+  <div data-fig="unet"></div>
+  <ul>
+    <li>Stages (base width 32): Encoder 1 32 × 128², Encoder 2 64 × 64², Encoder 3 128 × 32², Encoder 4 256 × 16², Bottleneck 512 × 8², then Decoder 4 256 × 16², Decoder 3 128 × 32², Decoder 2 64 × 64², Decoder 1 32 × 128², Head 2 × 128².</li>
+    <li>Differences from the paper: upsample + 3 × 3 convolution instead of a transposed convolution, BatchNorm, and half the paper’s channel widths.</li>
+    <li>Trainable parameters: <b>8,636,418</b>, about 14 times fewer than FCN-8, yet trained from scratch.</li>
+  </ul>
+  <details class="code"><summary>Code: U-Net and its training</summary><pre data-code="unet"></pre></details>
+  <div class="widget" data-w="quiz" data-q="q4"></div>
+  <h3>Training logs</h3>
+  <div class="widget" data-w="curves"></div>
+  <div data-fig="ur1,ur2"></div>
+  <h3>Test-set comparison</h3>
+  <div class="widget" data-w="compare"></div>
+  <details class="code"><summary>Code: evaluation</summary><pre data-code="evalu"></pre></details>
+</div>
+</section>
+
+<section id="robust" data-title="Robustness and real photos">
+<div class="in">
+  <span class="kicker">08</span>
+  <h2>Stress tests and real photos</h2>
+  <p>A high average score can hide failures. The lecture tests the U-Net under six conditions, then retrains it with 400 harder portraits added.</p>
+  <div class="widget" data-w="stress"></div>
+  <p>Retraining on the harder data reached Dice 0.9960 and accuracy 0.9977 at epoch 15 (epoch 1: Dice 0.8977). The fix <b>only helped for the conditions added to the training data</b>.</p>
+  <details class="code"><summary>Code: stress test and retraining</summary><pre data-code="stress"></pre></details>
+  <h3>Real photos</h3>
+  <p>The lecture compares our U-Net with a pretrained <b>LRASPP-MobileNetV3</b> on a real photo. Ours struggles because it was trained on drawings, while the pretrained model has seen real images.</p>
+  <div data-fig="real"></div>
+  <details class="code"><summary>Code: comparing on a photo</summary><pre data-code="photo"></pre></details>
+  <h3>Limits of U-Net</h3>
+  <ul>
+    <li>No instances: two people share one mask.</li>
+    <li>Training from scratch is slow.</li>
+    <li>Memory use is high on large images.</li>
+  </ul>
+  <p>For a pretrained U-Net, see <a href="https://github.com/qubvel-org/segmentation_models.pytorch">segmentation_models.pytorch</a>.</p>
+</div>
+</section>
+
+<section id="mask" data-title="Mask R-CNN">
+<div class="in">
+  <span class="kicker">09</span>
+  <h2>Mask R-CNN: a mask per object</h2>
+  <p>Faster R-CNN is a fast and accurate detector. <b>Mask R-CNN adds a mask head</b> (a small FCN) to it and <b>replaces RoIPool with RoIAlign</b>. The backbone, region proposal network and box head stay.</p>
+  <div data-fig="m1,m2"></div>
+  <div class="widget" data-w="mask"></div>
+  <div data-fig="m3"></div>
+  <h3>RoIAlign</h3>
+  <div data-fig="m4"></div>
+  <div class="widget" data-w="align"></div>
+  <h3>Mask head</h3>
+  <p>The mask head upsamples each RoI feature map (for example to 28 × 28) with one mask per class and a per-pixel sigmoid. Only the mask of the class chosen by the box head is used; it is resized to the box size and thresholded at 0.5.</p>
+  <div data-fig="m5"></div>
+  <div class="widget" data-w="quiz" data-q="q5"></div>
+  <h3>Key takeaways</h3>
+  <div class="callout"><ul>
+    <li>Segmentation labels every pixel. <b>Semantic</b> segmentation shares one label per class; <b>instance</b> segmentation separates objects.</li>
+    <li>Segmentation networks keep the input size at the output and combine “what” (deep layers) with “where” (shallow layers) through skip connections.</li>
+    <li>Transposed convolution upsamples with out = (in − 1)·s − 2p + k.</li>
+    <li>Use <b>Dice and IoU</b> (IoU = Dice / (2 − Dice), never higher than Dice) and a CE + Dice loss, because background dominates.</li>
+    <li><b>U-Net</b> (concatenated skips, Dice 0.995, IoU 0.990) beat <b>FCN-8</b> (added skips, Dice 0.927, IoU 0.864) on our test set.</li>
+    <li>Performance degrades on conditions missing from the training data; retraining fixes only what you add.</li>
+    <li>U-Net-style models give a person-vs-background mask in one pass; <b>Mask R-CNN</b> gives a mask per object at higher cost.</li>
+  </ul></div>
+</div>
+</section>
+
+</main>
+<footer>Computer Vision 9 post read<small>Interactive learning article</small></footer>
+
+<script>
+(function(){
+'use strict';
+const $=(s,r=document)=>r.querySelector(s);
+const $$=(s,r=document)=>Array.from(r.querySelectorAll(s));
+const fmt=n=>Number(n).toLocaleString('en-US');
+const esc=s=>String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/"/g,'&quot;');
+let uid=0;
+function h(html){const t=document.createElement('template');t.innerHTML=html.trim();return t.content.firstElementChild;}
+function mix(t){t=Math.max(0,Math.min(1,t));const a=[255,255,255],b=[109,40,217];return 'rgb('+a.map((v,i)=>Math.round(v+(b[i]-v)*t)).join(',')+')';}
+function ink(t){return t>0.5?'#fff':'#2e1065';}
+function shell(root,title,desc){root.classList.add('widget');root.innerHTML='<span class="wtag">Interactive</span><h4 class="wtitle">'+title+'</h4>'+(desc?'<p class="wdesc">'+desc+'</p>':'')+'<div class="wbody"></div>';return $('.wbody',root);}
+function seg(container,options,value,onChange,label){
+  const wrap=h('<div class="seg" role="group" aria-label="'+label+'"></div>');
+  function set(v){value=v;Array.from(wrap.children).forEach((b,i)=>b.setAttribute('aria-pressed',String(options[i].value===v)));}
+  options.forEach(o=>{const b=h('<button type="button" aria-pressed="false">'+o.label+'</button>');b.addEventListener('click',()=>{set(o.value);onChange(o.value);});wrap.appendChild(b);});
+  set(value);container.appendChild(wrap);return {set};
+}
+
+/* ---------- chart helper (inline SVG) ---------- */
+function niceMax(m){const st=m<=3?0.5:m<=6?1:2;return Math.ceil(m/st)*st;}
+function stepTicks(a,b,st){const t=[];for(let v=a;v<=b+1e-9;v+=st)t.push(+v.toFixed(6));return t;}
+function epochTicks(n){const st=n<=12?1:5,t=[1];for(let v=st;v<=n;v+=st)if(v>1)t.push(v);return t;}
+function chart(o){
+  const W=o.W||640,H=o.H||300,M=Object.assign({l:52,r:16,t:16,b:40},o.M||{});
+  const iw=W-M.l-M.r,ih=H-M.t-M.b,x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+  const X=v=>M.l+(v-x0)/(x1-x0)*iw,Y=v=>M.t+ih-(v-y0)/(y1-y0)*ih;
+  let s='<svg viewBox="0 0 '+W+' '+H+'" role="img" aria-label="'+esc(o.label||'Chart')+'">';
+  (o.yt||[]).forEach(t=>{s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(t).toFixed(1)+'" y2="'+Y(t).toFixed(1)+'" stroke="#e4dcfa"/><text x="'+(M.l-8)+'" y="'+(Y(t)+4).toFixed(1)+'" text-anchor="end" font-size="11" fill="#5a4f78">'+(o.yf?o.yf(t):t)+'</text>';});
+  (o.xt||[]).forEach(t=>{s+='<text x="'+X(t).toFixed(1)+'" y="'+(H-M.b+17)+'" text-anchor="middle" font-size="11" fill="#5a4f78">'+(o.xf?o.xf(t):t)+'</text>';});
+  s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+(M.t+ih)+'" y2="'+(M.t+ih)+'" stroke="#a78bfa"/>';
+  if(o.xlabel)s+='<text x="'+(M.l+iw/2)+'" y="'+(H-5)+'" text-anchor="middle" font-size="12" font-weight="700" fill="#2e1065">'+esc(o.xlabel)+'</text>';
+  if(o.ylabel)s+='<text transform="translate(13 '+(M.t+ih/2)+') rotate(-90)" text-anchor="middle" font-size="12" font-weight="700" fill="#2e1065">'+esc(o.ylabel)+'</text>';
+  (o.hl||[]).forEach(v=>{s+='<line x1="'+M.l+'" x2="'+(W-M.r)+'" y1="'+Y(v.y).toFixed(1)+'" y2="'+Y(v.y).toFixed(1)+'" stroke="'+(v.c||'#a78bfa')+'" stroke-width="'+(v.w||1.5)+'"'+(v.d?' stroke-dasharray="'+v.d+'"':'')+'/>';});
+  (o.vl||[]).forEach(v=>{const x=X(v.x),right=x>W*0.7;s+='<line x1="'+x.toFixed(1)+'" x2="'+x.toFixed(1)+'" y1="'+M.t+'" y2="'+(M.t+ih)+'" stroke="'+(v.c||'#8b5cf6')+'" stroke-width="'+(v.w||1.5)+'" stroke-dasharray="'+(v.d||'4 4')+'"/>'+(v.label?'<text x="'+(x+(right?-4:4)).toFixed(1)+'" y="'+(M.t+11)+'" text-anchor="'+(right?'end':'start')+'" font-size="10.5" font-weight="700" fill="#4c1d95">'+esc(v.label)+'</text>':'');});
+  if(o.cur!=null){const x=X(o.cur).toFixed(1);s+='<line x1="'+x+'" x2="'+x+'" y1="'+M.t+'" y2="'+(M.t+ih)+'" stroke="#a78bfa" stroke-width="2"/>';}
+  (o.series||[]).forEach(se=>{
+    if(!se.pts.length)return;
+    s+='<path d="'+se.pts.map((p,i)=>(i?'L':'M')+X(p[0]).toFixed(1)+' '+Y(p[1]).toFixed(1)).join(' ')+'" fill="none" stroke="'+se.c+'" stroke-width="'+(se.w||2.6)+'"'+(se.d?' stroke-dasharray="'+se.d+'"':'')+' stroke-linejoin="round"/>';
+    if(se.m)se.pts.forEach(p=>{const hi=o.cur!=null&&Math.abs(p[0]-o.cur)<1e-9,r=hi?6:3.4,x=X(p[0]),y=Y(p[1]);
+      if(se.m==='c')s+='<circle cx="'+x.toFixed(1)+'" cy="'+y.toFixed(1)+'" r="'+r+'" fill="'+se.c+'"/>';
+      else if(se.m==='s')s+='<rect x="'+(x-r).toFixed(1)+'" y="'+(y-r).toFixed(1)+'" width="'+2*r+'" height="'+2*r+'" fill="#fff" stroke="'+se.c+'" stroke-width="2.2"/>';
+      else s+='<path d="M'+x.toFixed(1)+' '+(y-r-1).toFixed(1)+' L'+(x+r+1).toFixed(1)+' '+(y+r).toFixed(1)+' L'+(x-r-1).toFixed(1)+' '+(y+r).toFixed(1)+' Z" fill="#fff" stroke="'+se.c+'" stroke-width="2.2"/>';});
+  });
+  (o.dots||[]).forEach(d=>{s+='<circle cx="'+X(d.x).toFixed(1)+'" cy="'+Y(d.y).toFixed(1)+'" r="6" fill="'+d.c+'" stroke="#fff" stroke-width="2"/>';});
+  return s+'</svg>';
+}
+function legendHtml(S){return S.map(se=>'<span><i style="border-color:'+se.c+';'+(se.d?'border-top-style:dashed':'')+'"></i>'+se.n+'</span>').join('');}
+function fmtLR(v){return v.toFixed(6).replace(/0+$/,'').replace(/\.$/,'');}
+
+/* ---------- figures ---------- */
+const CF='https://d2beiqkhq929f0.cloudfront.net/public_assets/assets/000/';
+function fig(path,alt,cap,w){
+  return '<figure class="fig"><img src="'+CF+path+'" alt="'+esc(alt)+'" loading="lazy"'+(w?' style="max-width:'+w+'px"':'')+' onerror="this.closest(\'.fig\').classList.add(\'broken\')"><div class="fb" role="note">Image not available offline. '+esc(alt)+'</div>'+(cap?'<figcaption>'+cap+'</figcaption>':'')+'</figure>';
+}
+/* ---------- tabs ---------- */
+function mountTabs(root,items){
+  root.classList.add('tabs');
+  const id='t'+(++uid),list=h('<div class="tablist" role="tablist"></div>'),tabs=[],panels=[];
+  items.forEach((it,i)=>{
+    const b=h('<button type="button" role="tab" id="'+id+'-t'+i+'" aria-controls="'+id+'-p'+i+'">'+it.label+'</button>');
+    const p=h('<div role="tabpanel" id="'+id+'-p'+i+'" aria-labelledby="'+id+'-t'+i+'" tabindex="0"></div>');
+    p.innerHTML=it.html;tabs.push(b);panels.push(p);list.appendChild(b);
+  });
+  root.append(list,...panels);
+  function sel(i,focus){tabs.forEach((b,j)=>{const on=i===j;b.setAttribute('aria-selected',String(on));b.tabIndex=on?0:-1;panels[j].hidden=!on;});if(focus)tabs[i].focus();}
+  tabs.forEach((b,i)=>{
+    b.addEventListener('click',()=>sel(i));
+    b.addEventListener('keydown',e=>{
+      if(e.key==='ArrowRight'){e.preventDefault();sel((i+1)%tabs.length,true);}
+      else if(e.key==='ArrowLeft'){e.preventDefault();sel((i-1+tabs.length)%tabs.length,true);}
+      else if(e.key==='Home'){e.preventDefault();sel(0,true);}
+      else if(e.key==='End'){e.preventDefault();sel(tabs.length-1,true);}
+    });
+  });
+  sel(0);
+}
+const code=k=>'<pre data-code="'+k+'"></pre>';
+function wQuiz(root,key){
+  const d=QUIZ[key],name='q'+(++uid),L='abcd';
+  root.classList.add('widget');
+  root.innerHTML='<span class="wtag">Check your understanding</span><fieldset><legend>'+d.q+'</legend>'+d.c.map((c,i)=>'<label class="opt"><input type="radio" name="'+name+'" value="'+i+'"><span>'+(d.letters?L[i]+') ':'')+c+'</span><span class="mk"></span></label>').join('')+'</fieldset><div class="qa"><button type="button" class="btn" disabled>Check answer</button><button type="button" class="btn ghost" hidden>Try again</button></div><div class="readout" aria-live="polite" hidden></div>';
+  const [chk,again]=$$('.btn',root),out=$('.readout',root),opts=$$('.opt',root),radios=$$('input',root);
+  radios.forEach(r=>r.addEventListener('change',()=>{chk.disabled=false;}));
+  chk.addEventListener('click',()=>{
+    const v=radios.findIndex(r=>r.checked);if(v<0)return;
+    opts.forEach((o,i)=>{o.classList.remove('ok','bad');$('.mk',o).textContent='';if(i===d.a){o.classList.add('ok');$('.mk',o).textContent='✓ Correct answer';}else if(i===v){o.classList.add('bad');$('.mk',o).textContent='✗ Your choice';}});
+    out.hidden=false;out.innerHTML='<b>'+(v===d.a?'Correct.':'Not quite.')+'</b> '+d.e;
+    chk.hidden=true;again.hidden=false;radios.forEach(r=>r.disabled=true);
+  });
+  again.addEventListener('click',()=>{
+    opts.forEach(o=>{o.classList.remove('ok','bad');$('.mk',o).textContent='';});
+    radios.forEach(r=>{r.checked=false;r.disabled=false;});out.hidden=true;chk.hidden=false;chk.disabled=true;again.hidden=true;
+  });
+}
+
+/* ---------- contents + progress ---------- */
+function wToc(){
+  const secs=$$('main section[data-title]'),ol=$('#toc ol'),btn=$('#tocBtn'),toc=$('#toc');
+  ol.innerHTML=secs.map((s,i)=>'<li><a href="#'+s.id+'"><b>'+String(i+1).padStart(2,'0')+'</b><span>'+s.dataset.title+'</span></a></li>').join('');
+  function close(){toc.hidden=true;btn.setAttribute('aria-expanded','false');}
+  btn.addEventListener('click',()=>{const o=toc.hidden;toc.hidden=!o;btn.setAttribute('aria-expanded',String(o));});
+  ol.addEventListener('click',e=>{if(e.target.closest('a'))close();});
+  document.addEventListener('keydown',e=>{if(e.key==='Escape'&&!toc.hidden){close();btn.focus();}});
+  document.addEventListener('click',e=>{if(!toc.hidden&&!e.target.closest('#toc')&&!e.target.closest('#tocBtn'))close();});
+  const links=$$('a',ol);
+  if('IntersectionObserver' in window){
+    const io=new IntersectionObserver(es=>{es.forEach(en=>{if(en.isIntersecting){links.forEach(l=>l.removeAttribute('aria-current'));const l=$('a[href="#'+en.target.id+'"]',ol);if(l)l.setAttribute('aria-current','true');}});},{rootMargin:'-30% 0px -60% 0px'});
+    secs.forEach(s=>io.observe(s));
+  }
+  const bar=$('#bar');
+  function prog(){const d=document.documentElement,t=d.scrollHeight-d.clientHeight;bar.style.width=(t>0?Math.min(100,d.scrollTop/t*100):0)+'%';}
+  window.addEventListener('scroll',prog,{passive:true});prog();
+}
+const mk=(n,m,f)=>Array.from({length:n},(_,i)=>Array.from({length:m},(_,j)=>f(i,j)));
+function corr(a,k){const kh=k.length,kw=k[0].length;return mk(a.length-kh+1,a[0].length-kw+1,(i,j)=>{let s=0;for(let p=0;p<kh;p++)for(let q=0;q<kw;q++)s+=a[i+p][j+q]*k[p][q];return s;});}
+const flip=k=>k.slice().reverse().map(r=>r.slice().reverse());
+function padM(a,p){return mk(a.length+2*p,a[0].length+2*p,(i,j)=>{const r=i-p,c=j-p;return r>=0&&r<a.length&&c>=0&&c<a[0].length?a[r][c]:0;});}
+const convFull=(a,k)=>corr(padM(a,k.length-1),flip(k));
+const r2=v=>Math.round(v*1e6)/1e6;
+function matHtml(m,o){o=o||{};return '<div class="mat" style="--c:'+m[0].length+(o.max?';max-width:'+o.max+'px':'')+'">'+m.map((r,i)=>r.map((v,j)=>'<div class="cell'+(o.cls?' '+o.cls(i,j,v):'')+'"'+(o.style?' style="'+o.style(i,j,v)+'"':'')+'>'+(o.fmt?o.fmt(v):r2(v))+'</div>').join('')).join('')+'</div>';}
+const heat=(m,v)=>'background:'+mix(Math.abs(v)/(m||1))+';color:'+ink(Math.abs(v)/(m||1));
+const P=fmt,pct=v=>(v*100).toFixed(1)+'%';
+const bar=(l,v,max,txt)=>'<div class="brow"><span class="bl">'+l+'</span><span class="bt"><span class="bf" style="width:'+Math.max(0.5,v/max*100)+'%"></span></span><span class="bv">'+txt+'</span></div>';
+const numF=(ctrl,label,val,cb,o)=>{o=o||{};const lab=h('<label class="fld">'+label+'<input type="number" value="'+val+'"'+(o.min!=null?' min="'+o.min+'"':'')+(o.max!=null?' max="'+o.max+'"':'')+(o.step?' step="'+o.step+'"':'')+'></label>');const i=$('input',lab);i.addEventListener('input',()=>{const v=parseFloat(i.value);if(!isNaN(v))cb(v);});ctrl.appendChild(lab);return i;};
+const FIGS={
+ mot:fig('047/872/original/Screenshot_2023-09-12_at_10.32.00_AM.png?1694495457','Tissue with a complex outline that a box cannot follow','Pixel-level segmentation traces complex boundaries',520),
+ tasks:fig('251/186/original/Screenshot_2026-11-03_170652.png?1793705829','Scene with three people, a tree, grass and sky drawn by the lecture code','The scene used to compare segmentation types',520),
+ inst:fig('047/874/original/Screenshot_2023-09-12_at_10.33.34_AM.png?1694495842','Instance segmentation example','Instance segmentation',520),
+ port:fig('251/187/original/Screenshot_2026-11-03_170735.png?1793705883','Twelve synthetic portraits with their mask outline','Training portraits with the mask outline in green',520),
+ enc:fig('251/188/original/Screenshot_2026-11-03_170842.png?1793705939','Image, mask, background channel and person channel','Mask encoding',520),
+ why:fig('047/875/original/Screenshot_2023-09-12_at_10.33.44_AM.png?1694495871','Box versus pixel mask','Why not just a box?',520),
+ out:fig('047/876/original/Screenshot_2023-09-12_at_10.33.54_AM.png?1694495897','Output with one channel per class','Output shape',520),
+ wwhere:fig('047/877/original/Screenshot_2023-09-12_at_10.34.05_AM.png?1694495923','Skip connections bring back where information','What and where',520),
+ t1:fig('047/878/original/Screenshot_2023-09-12_at_10.34.08_AM.png?1694495945','A convolution and its transposed counterpart','Transposed convolution restores size',520),
+ t2:fig('047/879/original/Screenshot_2023-09-12_at_10.34.16_AM.png?1694495971','Transposed convolution with stride 2','Stride 2, no padding',520),
+ t3:fig('047/880/original/Screenshot_2023-09-12_at_10.34.21_AM.png?1694496138','Transposed convolution with stride 1','Stride 1, no padding',520),
+ t4:fig('047/881/original/Screenshot_2023-09-12_at_10.34.26_AM.png?1694496208','Transposed convolution with padding 1','Padding 1',520),
+ tf:fig('047/882/original/Screenshot_2023-09-12_at_10.34.47_AM.png?1694496278','Output size formula','Output size formula',520),
+ tf2:fig('047/883/original/Screenshot_2023-09-12_at_10.34.55_AM.png?1694496300','Formula comparison','Convolution vs transposed convolution',520),
+ i1:fig('047/884/original/Screenshot_2023-09-12_at_10.35.57_AM.png?1694496324','IoU for masks','IoU',520),
+ i2:fig('047/885/original/Screenshot_2023-09-12_at_10.36.16_AM.png?1694496352','IoU example','IoU example',520),
+ d1:fig('047/886/original/Screenshot_2023-09-12_at_10.36.23_AM.png?1694496385','Dice coefficient','Dice',520),
+ d2:fig('047/887/original/Screenshot_2023-09-12_at_10.36.32_AM.png?1694496408','Dice example','Dice example',520),
+ fcn1:fig('047/888/original/Screenshot_2023-09-12_at_10.36.41_AM.png?1694496437','FCN-8 architecture','FCN-8',520),
+ fcn2:fig('047/889/original/Screenshot_2023-09-12_at_10.36.50_AM.png?1694496463','FCN-8 decoder with skip connections','FCN-8 decoder',520),
+ fr1:fig('251/189/original/Screenshot_2026-11-03_170947.png?1793706002','FCN-8 training curves','FCN-8 training curves',520),
+ fr2:fig('251/191/original/Screenshot_2026-11-03_171045.png?1793706058','FCN-8 predictions and portrait output','FCN-8 predictions',520),
+ unet:fig('047/890/original/Screenshot_2023-09-12_at_10.37.24_AM.png?1694496498','U-Net architecture','U-Net',760),
+ ur1:fig('251/192/original/Screenshot_2026-11-03_171128.png?1793706097','U-Net training curves','U-Net training curves',520),
+ ur2:fig('251/193/original/Screenshot_2026-11-03_171217.png?1793706147','U-Net predictions and portrait output','U-Net predictions',520),
+ real:fig('251/194/original/Screenshot_2026-11-03_171251.png?1793706182','A real photo, our U-Net and a pretrained model','Real photo comparison',520),
+ m1:fig('047/891/original/Screenshot_2023-09-12_at_10.37.50_AM.png?1694496631','Faster R-CNN','Faster R-CNN',520),
+ m2:fig('047/892/original/Screenshot_2023-09-12_at_10.38.06_AM.png?1694496657','Mask R-CNN overview','Mask R-CNN',520),
+ m3:fig('047/893/original/Screenshot_2023-09-12_at_10.38.16_AM.png?1694496683','Residual bottleneck block','Residual bottleneck block',520),
+ m4:fig('047/895/original/Screenshot_2023-09-12_at_10.38.32_AM.png?1694496723','RoIAlign','RoIAlign',520),
+ m5:fig('047/896/original/Screenshot_2023-09-12_at_10.38.43_AM.png?1694496746','Mask head','Mask head',520)
+};
+
+const QUIZ={
+ q1:{q:'Three friends stand together in a selfie. A semantic segmentation model labels every pixel. What does it output for the friends?',letters:true,c:['A separate mask for each friend, with a different ID for each one','A bounding box around each friend, with a class name','One label for the whole photo, such as “group photo”','The same person label on every friend pixel'],a:3,e:'Semantic segmentation assigns a category to each pixel and does not tell instances apart, so all three friends share one label. Option A describes instance segmentation, option B object detection and option C image classification.'},
+ q2:{q:'A transposed convolution has a 4 × 4 input, a 3 × 3 kernel, stride 2 and no padding. What is the output size?',letters:true,c:['8 × 8','9 × 9','10 × 10','11 × 11'],a:1,e:'Spacing 4 cells with stride 2 gives a 7 × 7 grid. Padding 2 zeros on each side makes it 11 × 11, and a 3 × 3 kernel with step 1 gives 9 × 9. The formula agrees: (4 − 1) × 2 − 0 + 3 = 9. The 11 × 11 option is the padded grid before the kernel is applied.'},
+ q3:{q:'On one image the model marks 40 pixels as person. The ground truth has 60 person pixels, and 30 pixels are marked in both. What is the Dice coefficient?',letters:true,c:['0.43','0.50','0.60','0.75'],a:2,e:'Dice = 2 × 30 / (40 + 60) = 0.60. The value 0.43 is the IoU (30 / 70), 0.50 is 30 / 60 and 0.75 is 30 / 40.'},
+ q4:{q:'How do FCN-8 and U-Net use encoder features in the decoder?',letters:true,c:['FCN-8 sums encoder outputs into its predictions, while U-Net concatenates them in the decoder','FCN-8 concatenates encoder outputs with its predictions, while U-Net sums them into decoder features','Both reuse the pooling indices from the encoder and have no other link between encoder and decoder','Neither uses encoder outputs in the decoder, and both decode only from the last encoder layer'],a:0,e:'In FCN-8 the pool3 and pool4 scores are summed with the upsampled predictions. In U-Net the encoder feature map is concatenated with the upsampled decoder feature map at each resolution, and convolutions then mix the two. Option C describes a different model (SegNet) and option D ignores skip connections altogether.'},
+ q5:{q:'Compared with Faster R-CNN, what does Mask R-CNN change?',letters:true,c:['It removes the region proposal network and predicts masks straight from the image','It adds a mask branch and replaces RoIPool with RoIAlign','It replaces the box head with a decoder that labels every pixel of the full image','It swaps the backbone for a U-Net and trains with Dice loss only'],a:1,e:'Mask R-CNN keeps the backbone, RPN and box head, adds a small mask branch for each RoI, and uses RoIAlign so the pooled features line up with the image. It still uses the RPN, still has a box head, and does not use a U-Net backbone.'}
+};
+
+/* ---- four tasks on a scene ---- */
+function wTasks(root){
+  const b=shell(root,'One photo, four tasks','The lecture draws an outdoor scene with three people, a tree, grass and sky. Switch between what each task outputs. (Schematic redraw, not the lecture’s exact image.)');
+  let m='cls';const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="duo"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'Classification',value:'cls'},{label:'Detection',value:'det'},{label:'Semantic',value:'sem'},{label:'Instance',value:'ins'}],m,v=>{m=v;draw();},'Task');
+  const P3=[[100,50,'1'],[150,45,'2'],[200,50,'3']];
+  function draw(){const sem=m==='sem'||m==='ins',col=(c,i)=>sem?c:'#faf8ff';
+    const sky=sem?'#ddd6fe':'#faf8ff',grass=sem?'#a78bfa':'#faf8ff',tree=sem?'#4c1d95':'#ede9fe';
+    const pc=m==='ins'?['#2e1065','#7c3aed','#c4b5fd']:['#6d28d9','#6d28d9','#6d28d9'];
+    let s='<svg viewBox="0 0 256 160" role="img" aria-label="Scene with three people, a tree, grass and sky" style="width:100%;max-width:420px;border:1px solid #e4dcfa;border-radius:10px"><rect width="256" height="160" fill="'+sky+'"/><rect y="88" width="256" height="72" fill="'+grass+'"/><rect x="30" y="70" width="12" height="55" fill="'+tree+'"/><ellipse cx="36" cy="55" rx="32" ry="38" fill="'+tree+'"/>';
+    P3.forEach((p,i)=>{const x=[110,150,192][i],foot=[118,125,120][i],top=foot-80;s+='<g fill="'+(sem?pc[i]:'#ede9fe')+'"><circle cx="'+x+'" cy="'+(top+10)+'" r="10"/><rect x="'+(x-13)+'" y="'+(top+20)+'" width="26" height="35"/><rect x="'+(x-11)+'" y="'+(top+55)+'" width="22" height="'+(foot-top-55)+'"/></g>';});
+    if(m==='det'){[[[17,35,40,95],'tree'],[[96,30,28,88],'person'],[[136,45,28,80],'person'],[[178,40,28,80],'person']].forEach(([r,t])=>{s+='<rect x="'+r[0]+'" y="'+r[1]+'" width="'+r[2]+'" height="'+r[3]+'" fill="none" stroke="#2e1065" stroke-width="2"/><text x="'+r[0]+'" y="'+(r[1]-3)+'" font-size="8" font-weight="700" fill="#2e1065">'+t+'</text>';});}
+    if(m==='cls')s+='<text x="6" y="152" font-size="9" font-weight="700" fill="#2e1065">person, tree, grass, sky</text>';
+    if(sem){s+='<text x="6" y="12" font-size="9" font-weight="700" fill="#2e1065">sky</text><text x="6" y="150" font-size="9" font-weight="700" fill="#fff">grass</text><text x="22" y="56" font-size="9" font-weight="700" fill="#fff">tree</text>';[110,150,192].forEach((x,i)=>{s+='<text x="'+(x-9)+'" y="'+([62,67,62][i])+'" font-size="7" font-weight="700" fill="#fff">'+(m==='ins'?'P'+(i+1):'person')+'</text>';});}
+    out.innerHTML=s+'</svg>';
+    ro.innerHTML={cls:'<b>Image classification</b> names what is in the image: person, tree, grass, sky.',det:'<b>Object detection</b> names what is in the image and where, with a box around each object.',sem:'<b>Semantic segmentation</b> labels every pixel with a category (sky, grass, tree, person). All three people share one label, and the background pixels are labelled too.',ins:'<b>Instance segmentation</b> detects each object first, then labels its pixels: each person gets a different ID (P1, P2, P3).'}[m]+'<br>Our portrait problem has one person per selfie, so semantic segmentation (person vs background) is enough.';}
+  draw();
+}
+
+/* ---- class balance ---- */
+function wBal(root){
+  const b=shell(root,'Class balance and the all-background trap','Share of person pixels across the 1,000 training portraits (lecture): mean 28.1%, min 14.6%, max 45.4%. Choose a share to see what a model that predicts background everywhere would score.');
+  let sh=28.1;const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'Min 14.6%',value:14.6},{label:'Mean 28.1%',value:28.1},{label:'Max 45.4%',value:45.4}],sh,v=>{sh=v;draw();},'Person share');
+  function draw(){const acc=100-sh;out.innerHTML=bar('Person pixels',sh,100,sh+'%')+bar('Background pixels',acc,100,acc.toFixed(1)+'%')+bar('Pixel accuracy: “all background”',acc,100,acc.toFixed(1)+'%')+bar('Dice: “all background”',0,100,'0');
+    ro.innerHTML='A model that predicts background everywhere gets <b>'+acc.toFixed(1)+'%</b> pixel accuracy'+(sh===28.1?' (the lecture: 71.9% at the mean share)':'')+' but a person Dice of <b>0</b> (it overlaps none of the person). That is why we track Dice, not just accuracy. (Dice 0 for the all-background model is computed from the definition.)';}
+  draw();
+}
+
+/* ---- transposed convolution ---- */
+function wConvT(root){
+  const b=shell(root,'Transposed convolution size calculator','Normal: out = ⌊(in + 2p − k) / s⌋ + 1. Transposed: out = (in − 1) × s − 2p + k. The input cells are placed s apart; the kernel then slides with step 1.');
+  const v={n:4,k:3,s:2,p:0};const ctrl=h('<div class="ctrl"></div>'),pre=h('<div class="ctrl"></div>'),out=h('<div></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(pre,ctrl,out,ro);
+  const I=[];[['n','Input size'],['k','Kernel'],['s','Stride'],['p','Padding']].forEach(([k,l])=>I.push(numF(ctrl,l,v[k],x=>{v[k]=Math.max(k==='p'?0:1,Math.round(x));draw();},{min:k==='p'?0:1,step:1})));
+  const PS=[[3,2,2,0],[3,2,1,0],[3,2,2,1],[4,3,2,0],[4,3,2,1]];const sg=h('<div class="seg" role="group" aria-label="Lecture examples"></div>');PS.forEach(p=>{const bt=h('<button type="button" aria-pressed="false">in '+p[0]+' k'+p[1]+' s'+p[2]+' p'+p[3]+'</button>');bt.addEventListener('click',()=>{[v.n,v.k,v.s,v.p]=p;I.forEach((x,i)=>x.value=p[i]);draw();});sg.appendChild(bt);});pre.appendChild(sg);
+  function draw(){const {n,k,s,p}=v,sp=(n-1)*s+1,pad=sp+2*(k-1),outS=(n-1)*s-2*p+k;
+    $$('button',sg).forEach((x,i)=>x.setAttribute('aria-pressed',String(PS[i].join()===[n,k,s,p].join())));
+    let g='';if(pad<=18){const off=k-1-p;g='<div class="mat" style="--c:'+pad+';max-width:'+Math.min(340,pad*30)+'px;gap:2px">';for(let r=0;r<pad;r++)for(let c=0;c<pad;c++){const ri=r-(k-1),ci=c-(k-1),isIn=ri>=0&&ci>=0&&ri%s===0&&ci%s===0&&ri/s<n&&ci/s<n;const trimmed=r<p||c<p||r>=pad-p||c>=pad-p;g+='<div class="cell'+(isIn?' on':'')+'" style="font-size:.5rem;'+(trimmed?'opacity:.25':'')+'">'+(isIn?'x':'')+'</div>';}g+='</div><p class="note">x = input cell. Zeros fill the gaps and the border; faded outer rings are removed by padding.</p>';}
+    out.innerHTML=g;
+    ro.innerHTML='Spaced grid: (n − 1)·s + 1 = <b>'+sp+'</b>. With k − 1 = '+(k-1)+' zeros each side: <b>'+pad+' × '+pad+'</b>'+(p?'; padding '+p+' then trims '+p+' from each side':'')+'. A k × k kernel at step 1 gives <b>'+outS+' × '+outS+'</b>.<br>Formula: ('+n+' − 1) × '+s+' − 2 × '+p+' + '+k+' = <b>'+outS+'</b>'+(PS.some(q=>q.join()===[n,k,s,p].join())?' (matches PyTorch’s <code>ConvTranspose2d</code> in the lecture’s check).':'.');}
+  draw();
+}
+
+/* ---- dice / iou ---- */
+function wDice(root){
+  const b=shell(root,'Dice vs IoU','Dice = 2·overlap / (predicted + true). IoU = overlap / union. IoU = Dice / (2 − Dice), so IoU is never higher than Dice. Use the 4 × 4 grids (click cells) or enter pixel counts.');
+  let mode='grid';const ctrl=h('<div class="ctrl"></div>'),body=h('<div></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,body,ro);
+  const T=[0,0,0,0,0,1,1,0,0,1,1,0,0,0,0,0],Pd=[0,0,0,0,0,1,1,1,0,1,1,1,0,0,0,0];let gt=T.slice(),pd=Pd.slice(),cnt={p:40,t:60,o:30},edit='pred';
+  seg(ctrl,[{label:'4×4 grid',value:'grid'},{label:'Pixel counts',value:'cnt'}],mode,v=>{mode=v;draw();},'Input');
+  function res(P,Tt,O){const d=(2*O)/Math.max(P+Tt,1),i=O/Math.max(P+Tt-O,1);ro.innerHTML='Overlap '+O+', predicted '+P+', true '+Tt+' → Dice = 2·'+O+'/('+P+'+'+Tt+') = <b>'+d.toFixed(3)+'</b>, IoU = '+O+'/'+(P+Tt-O)+' = <b>'+i.toFixed(3)+'</b>; IoU from Dice = '+(d/(2-d)).toFixed(3)+'. Dice loss = 1 − Dice = <b>'+(1-d).toFixed(3)+'</b> (combined with cross-entropy in training).'+(mode==='grid'&&gt.join()===T.join()&&pd.join()===Pd.join()?'<br>The lecture’s example: Dice 0.800, IoU 0.667.':'')+(mode==='cnt'&&P===40&&Tt===60&&O===30?'<br>The lecture’s quiz: Dice 0.60 (and IoU 30/70 = 0.43).':'');}
+  function draw(){body.innerHTML='';if(mode==='grid'){const sg=h('<div class="seg" role="group" aria-label="Edit which mask"></div>');[['pred','Edit prediction'],['truth','Edit truth']].forEach(([k,l])=>{const bt=h('<button type="button" aria-pressed="'+(edit===k)+'">'+l+'</button>');bt.addEventListener('click',()=>{edit=k;draw();});sg.appendChild(bt);});body.appendChild(sg);
+      const g=h('<div class="duo"></div>');[['truth',gt],['pred',pd]].forEach(([k,arr])=>{const d=h('<div class="pn"><div class="pl">'+(k==='truth'?'Ground truth':'Prediction')+'</div><div class="mat" style="--c:4;max-width:180px"></div></div>');const m=$('.mat',d);arr.forEach((v,i)=>{const c=h('<button type="button" class="cell'+(v?' on':'')+'" aria-pressed="'+!!v+'" aria-label="'+k+' cell '+(i+1)+'">'+(v?'1':'0')+'</button>');c.addEventListener('click',()=>{arr[i]=arr[i]?0:1;draw();});m.appendChild(c);});g.appendChild(d);});body.appendChild(g);
+      const P=pd.reduce((a,c)=>a+c,0),Tt=gt.reduce((a,c)=>a+c,0),O=pd.reduce((a,c,i)=>a+(c&&gt[i]?1:0),0);res(P,Tt,O);}
+    else{const c=h('<div class="ctrl"></div>');[['p','Predicted pixels'],['t','True pixels'],['o','Overlap']].forEach(([k,l])=>numF(c,l,cnt[k],x=>{cnt[k]=Math.max(0,Math.round(x));cnt.o=Math.min(cnt.o,cnt.p,cnt.t);res(cnt.p,cnt.t,cnt.o);},{min:0,step:1}));body.appendChild(c);res(cnt.p,cnt.t,Math.min(cnt.o,cnt.p,cnt.t));}}
+  draw();
+}
+
+/* ---- architecture explorer ---- */
+function unetParams(base){const dc=(a,c)=>a*c*9+c+2*c+c*c*9+c+2*c,up=(a,c)=>a*c*9+c+dc(2*c,c),bb=base;return dc(3,bb)+dc(bb,2*bb)+dc(2*bb,4*bb)+dc(4*bb,8*bb)+dc(8*bb,16*bb)+up(16*bb,8*bb)+up(8*bb,4*bb)+up(4*bb,2*bb)+up(2*bb,bb)+bb*2+2;}
+function wArch(root){
+  const b=shell(root,'Inside FCN-8 and U-Net','Shapes for a 128 × 128 input (channels × height × width). Select a stage. FCN-8 <b>adds</b> pool scores to the decoder; U-Net <b>concatenates</b> encoder features at every resolution.');
+  const FC=[['Input','3 × 128 × 128','Normalised with ImageNet mean and std.',''],['pool3 (frozen VGG-16)','256 × 16 × 16','1/8 resolution. Score head (1×1 conv) is added later.','skip'],['pool4 (frozen VGG-16)','512 × 8 × 8','1/16 resolution.','skip'],['pool5 (frozen VGG-16)','512 × 4 × 4','1/32 resolution.',''],['conv6 + conv7','4096 × 4 × 4','7×7 conv (512→4096) then 1×1 conv (4096→4096), as “fully connected” layers made convolutional.',''],['score7 → 2× up + score4','2 × 8 × 8','Transposed conv (2×) then <b>add</b> the pool4 score.','add'],['2× up + score3','2 × 16 × 16','Transposed conv (2×) then <b>add</b> the pool3 score.','add'],['8× up (output)','2 × 128 × 128','One learned 8× transposed conv: one channel per class.','']];
+  const UN=[['Encoder 1','32 × 128 × 128','Two 3×3 convs; output kept for a skip.','skip'],['Encoder 2','64 × 64 × 64','Max pool, two convs, kept.','skip'],['Encoder 3','128 × 32 × 32','Max pool, two convs, kept.','skip'],['Encoder 4','256 × 16 × 16','Max pool, two convs, kept.','skip'],['Bottleneck','512 × 8 × 8','Max pool, two convs.',''],['Decoder 4','256 × 16 × 16','Upsample, <b>concatenate</b> Encoder 4, two convs.','cat'],['Decoder 3','128 × 32 × 32','Upsample, concatenate Encoder 3, two convs.','cat'],['Decoder 2','64 × 64 × 64','Upsample, concatenate Encoder 2, two convs.','cat'],['Decoder 1','32 × 128 × 128','Upsample, concatenate Encoder 1, two convs.','cat'],['Head','2 × 128 × 128','1×1 convolution: one channel per class.','']];
+  let m='fcn',sel=0;const ctrl=h('<div class="ctrl"></div>'),mx=h('<div class="mx"><ul class="layers"></ul><div class="ldetail" aria-live="polite"></div></div>'),ro=h('<div class="readout"></div>');b.append(ctrl,mx,ro);
+  seg(ctrl,[{label:'FCN-8',value:'fcn'},{label:'U-Net',value:'unet'}],m,v=>{m=v;sel=0;draw();},'Model');
+  const ul=$('.layers',mx),dt=$('.ldetail',mx);
+  function draw(){const L=m==='fcn'?FC:UN;ul.innerHTML=L.map((r,i)=>'<li><button type="button" class="lay" data-i="'+i+'" aria-pressed="'+(i===sel)+'"><span class="ln">'+r[0]+'</span><span class="ls">'+r[1]+'</span><span class="lp">'+(r[3]==='add'?'+ add':r[3]==='cat'?'⊕ concat':r[3]==='skip'?'skip →':'')+'</span></button></li>').join('');
+    const r=L[sel];dt.innerHTML='<h4>'+r[0]+'</h4><p>Output: <code>'+r[1]+'</code></p><p>'+r[2]+'</p>';
+    const u=unetParams(32);ro.innerHTML=m==='fcn'?'Trainable parameters: <b>119,555,878</b> (lecture). The VGG-16 encoder is frozen; most trainable weights sit in the 7×7 conv6 (512→4096: 102,764,544 weights, computed) and conv7.':'Trainable parameters: <b>'+P(u)+'</b> (computed from the layer definitions)'+(u===8636418?', matching the lecture’s 8,636,418.':'.')+' Our U-Net uses upsampling + 3×3 conv instead of transposed convolutions, padding in every conv, batch norm, and half the paper’s channel widths (32 to 512).';}
+  mx.addEventListener('click',e=>{const t=e.target.closest('[data-i]');if(!t)return;sel=+t.dataset.i;draw();$('[data-i="'+sel+'"]',ul).focus();});draw();
+}
+
+/* ---- training curves ---- */
+const FC={vl:[.9890,.4400,.3287,.2878,.2661,.2543,.2462,.2366,.2272,.2198,.2138,.2080,.2059,.2012,.2012],l:[1.2467,.6801,.3567,.2844,.2522,.2340,.2199,.2084,.1974,.1872,.1785,.1712,.1661,.1617,.1577],d:[.6138,.8555,.8912,.8975,.9052,.9093,.9125,.9154,.9183,.9209,.9230,.9250,.9251,.9270,.9271],a:[.7550,.9189,.9366,.9423,.9464,.9486,.9501,.9520,.9537,.9551,.9565,.9576,.9580,.9588,.9591]};
+const UN={vl:[.5336,.3449,.1719,.1364,.0930,.0954,.0465,.0577,.0337,.0418,.0227,.0192,.0180,.0175,.0202],l:[.7243,.3497,.1888,.1262,.0893,.0654,.0525,.0436,.0361,.0323,.0249,.0207,.0176,.0158,.0180],d:[.8422,.9240,.9695,.9673,.9768,.9728,.9886,.9846,.9915,.9883,.9949,.9954,.9954,.9953,.9951],a:[.9028,.9592,.9827,.9815,.9871,.9847,.9936,.9913,.9952,.9934,.9971,.9974,.9974,.9973,.9972]};
+function wCurves(root){
+  const b=shell(root,'Training log: FCN-8 vs U-Net','15 epochs each, same loss (cross-entropy + Dice loss), same data. Hover the chart or use ← → to read an epoch.');
+  let met='d',idx=14;const ctrl=h('<div class="ctrl"></div>');seg(ctrl,[{label:'Val Dice',value:'d'},{label:'Pixel accuracy',value:'a'},{label:'Val loss',value:'vl'},{label:'Train loss',value:'l'}],met,v=>{met=v;draw();},'Metric');
+  const leg=h('<div class="legend"></div>'),pl=h('<div class="plot" tabindex="0" role="group" aria-label="Training chart. Use left and right arrow keys to change epoch."></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,leg,pl,ro);
+  const W=640,M={l:60,r:16,t:16,b:40},K={d:[[.6,1],[.6,.7,.8,.9,1],'Dice'],a:[[.75,1],[.75,.8125,.875,.9375,1],'Pixel accuracy'],vl:[[0,1],[0,.25,.5,.75,1],'Val loss'],l:[[0,1.3],[0,.4,.8,1.2],'Train loss']};
+  const pts=a=>a.map((v,i)=>[i+1,v]);
+  function draw(){const k=K[met],S=[{n:'FCN-8',pts:pts(FC[met]),c:'#8b5cf6',d:'7 5',m:'s'},{n:'U-Net',pts:pts(UN[met]),c:'#2e1065',d:'',m:'c'}];
+    leg.innerHTML=legendHtml(S);pl.innerHTML=chart({W,H:260,M,x:[1,15],y:k[0],xt:[1,3,5,7,9,11,13,15],yt:k[1],yf:v=>(met==='d'||met==='a')?(v*100).toFixed(0)+'%':v,xlabel:'Epoch',label:k[2]+' per epoch for FCN-8 and U-Net',series:S,cur:idx+1});
+    ro.innerHTML='<b>Epoch '+(idx+1)+'/15</b> — FCN-8: loss '+FC.l[idx].toFixed(4)+', val_loss '+FC.vl[idx].toFixed(4)+', val_dice '+FC.d[idx].toFixed(4)+', val_acc '+FC.a[idx].toFixed(4)+'<br>U-Net: loss '+UN.l[idx].toFixed(4)+', val_loss '+UN.vl[idx].toFixed(4)+', val_dice '+UN.d[idx].toFixed(4)+', val_acc '+UN.a[idx].toFixed(4)+(idx===14?'<br>By epoch 3 the U-Net’s Dice (0.9695) is already above FCN-8’s final 0.9271.':'');}
+  function at(e){const r=pl.getBoundingClientRect(),x=(e.clientX-r.left)/r.width*W;idx=Math.max(0,Math.min(14,Math.round(1+(x-M.l)/(W-M.l-M.r)*14)-1));draw();}
+  pl.addEventListener('pointermove',at);pl.addEventListener('pointerdown',at);pl.addEventListener('keydown',e=>{if(e.key==='ArrowRight'){idx=Math.min(14,idx+1);draw();e.preventDefault();}else if(e.key==='ArrowLeft'){idx=Math.max(0,idx-1);draw();e.preventDefault();}});
+  draw();
+}
+
+/* ---- comparison ---- */
+function wCompare(root){
+  const b=shell(root,'FCN-8 vs U-Net on the test set','Same metrics for both models. The last row is the share of wrong pixels that lie within 3 px of the true edge.');
+  const D=[['Dice',.927,.995],['IoU',.864,.990],['Pixel accuracy',.959,.997],['Errors within 3 px of the edge',.792,.824]];let m='both';
+  const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout"></div>');b.append(out,ro);
+  function draw(){out.innerHTML=D.map(r=>'<div style="margin:.5rem 0"><b>'+r[0]+'</b>'+bar('FCN-8',r[1],1,r[1].toFixed(3))+bar('U-Net',r[2],1,r[2].toFixed(3))+'</div>').join('');
+    ro.innerHTML='Gap (U-Net − FCN-8, computed): Dice '+(.995-.927).toFixed(3)+', IoU <b>'+(.990-.864).toFixed(3)+'</b>, pixel accuracy '+(.997-.959).toFixed(3)+'. IoU separates the models most, because IoU is the stricter score: IoU = Dice / (2 − Dice) turns Dice 0.927 into 0.864 but Dice 0.995 into 0.990.<br>In both models most wrong pixels are right next to the true edge (79.2% and 82.4%): the difference is how many pixels are wrong, not where. FCN-8’s mask is coarse because the encoder shrinks the image 32×, only two skip connections bring detail back, and the final 8× upsampling is a single learned step.<br><span class="note">Pretrained U-Nets: <a href="https://github.com/qubvel-org/segmentation_models.pytorch">segmentation_models.pytorch</a>.</span>';}
+  draw();
+}
+
+/* ---- stress ---- */
+function wStress(root){
+  const b=shell(root,'Break the model: Dice under six conditions','The U-Net trained on ordinary portraits, then retrained with 400 harder ones added. Dice on 150 portraits per condition.');
+  const D=[['Like training',.994,.994],['Busy background',.994,.996],['Dim light',.953,.988],['Far from camera',.980,.988],['Strong tilt',.960,.994],['Object in front',.987,.987]];let m='a';
+  const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="bars"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  seg(ctrl,[{label:'Original U-Net',value:'a'},{label:'Retrained with harder data',value:'b'},{label:'Both',value:'ab'}],m,v=>{m=v;draw();},'Model');
+  function draw(){out.innerHTML=D.map(r=>m==='ab'?'<div style="margin:.4rem 0"><b>'+r[0]+'</b>'+bar('Original',r[1]-.9,.1,r[1].toFixed(3))+bar('Retrained',r[2]-.9,.1,r[2].toFixed(3))+'</div>':bar(r[0],(m==='a'?r[1]:r[2])-.9,.1,(m==='a'?r[1]:r[2]).toFixed(3))).join('');
+    ro.innerHTML='<span class="note">Bars start at Dice 0.90 so differences are visible.</span><br>'+(m==='a'?'Dim light (0.953) and strong tilt (0.960) are the weakest conditions.':m==='b'?'The retrained model saw 400 harder portraits (more clutter, dimmer light, smaller people, stronger tilt).':'Biggest gains (computed): dim light +0.035, strong tilt +0.034, far from camera +0.008. “Object in front” did not improve (0.987 both): occlusion was not among the conditions added.')+'<br>The fix helped only the conditions we added to the training data: the model learns what the data shows it. Each condition is a Dice on 150 synthetic portraits.';}
+  draw();
+}
+
+/* ---- RoIAlign ---- */
+function wAlign(root){
+  const b=shell(root,'RoIAlign vs RoIPool: one sample point','A sample point lands between four feature-map cells. RoIAlign interpolates bilinearly with no rounding; RoIPool rounds the coordinate and takes one cell. Illustrative values, not from the lecture.');
+  const F=[[2,8],[6,4]],v={x:.3,y:.7};const ctrl=h('<div class="ctrl"></div>'),out=h('<div class="duo"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(ctrl,out,ro);
+  [['x','x offset (0–1)'],['y','y offset (0–1)']].forEach(([k,l])=>numF(ctrl,l,v[k],x=>{v[k]=Math.max(0,Math.min(1,x));draw();},{min:0,max:1,step:.1}));
+  function draw(){const {x,y}=v,top=F[0][0]*(1-x)+F[0][1]*x,bot=F[1][0]*(1-x)+F[1][1]*x,al=top*(1-y)+bot*y,rx=Math.round(x),ry=Math.round(y),pool=F[ry][rx];
+    out.innerHTML='<div class="pn"><div class="pl">Feature map cells</div>'+matHtml(F,{max:140,style:(i,j,q)=>heat(8,q)})+'</div>';
+    ro.innerHTML='Point at (x, y) = ('+x+', '+y+') between the cells. <b>RoIAlign</b>: bilinear value = <b>'+al.toFixed(2)+'</b> (a weighted mix of all four neighbours). <b>RoIPool</b>: round to cell ('+ry+', '+rx+') → <b>'+pool+'</b>.<br>Rounding shifts the feature by up to half a cell, which is harmless for boxes but misaligns pixel-accurate masks. In RoIAlign each bin has 4 sample points whose interpolated values are pooled into one number.';}
+  draw();
+}
+
+/* ---- Mask R-CNN flow ---- */
+function wMask(root){
+  const b=shell(root,'Mask R-CNN, stage by stage','Mask R-CNN = Faster R-CNN + a mask head + RoIAlign. Step through the pipeline.');
+  const S=[['Backbone','A ResNet without its fully connected layers extracts features. It is built from residual bottleneck blocks: the input takes two paths, a few convolutions and an identity shortcut, added element-wise.'],['Region Proposal Network','Every feature-map position is an anchor centre with k anchors of different scales and aspect ratios. Two sibling 1×1 convs predict objectness and box offsets. Non-max suppression keeps the best box per object.'],['RoIAlign','Each RoI is scaled to the feature map and divided into a fixed number of bins, 4 sample points each, bilinear interpolation, no rounding. Result: a small fixed-size feature map per RoI.'],['Box head','After more residual bottleneck blocks, the RoI features go to the box head: class and refined box (as in Faster R-CNN).'],['Mask head','A small fully convolutional network upsamples each RoI feature map into a small mask (for example 28 × 28) for every class, with a per-pixel sigmoid so classes do not compete. Only the class chosen by the box head is used.'],['Final mask','The small mask is resized to the box size and placed at the box location. Thresholding at 0.5 gives the binary mask for that instance.']];
+  let k=0;const bar_=h('<div class="stepbar"><button type="button" class="btn ghost sm" data-a="prev">◀ Prev</button><input type="range" min="0" max="5" value="0" aria-label="Stage"><button type="button" class="btn sm" data-a="next">Next ▶</button></div>'),fl=h('<div class="flow"></div>'),ro=h('<div class="readout" aria-live="polite"></div>');b.append(bar_,fl,ro);
+  const rng=$('input',bar_);
+  function draw(){rng.value=k;fl.innerHTML=S.map((s,i)=>'<span'+(i===k?' style="background:var(--v900);color:#fff;border-color:var(--v900)"':'')+'>'+s[0]+'</span>').join('');ro.innerHTML='<b>'+(k+1)+'. '+S[k][0]+'.</b> '+S[k][1];}
+  bar_.addEventListener('click',e=>{const a=e.target.dataset.a;if(a==='prev')k=Math.max(0,k-1);else if(a==='next')k=Math.min(5,k+1);else return;draw();});rng.addEventListener('input',()=>{k=+rng.value;draw();});draw();
+}
+function fillCode(){$$('[data-code]').forEach(el=>{el.textContent=CODE[el.dataset.code]||'';});}
+const W={tasks:wTasks,bal:wBal,convt:wConvT,dice:wDice,arch:wArch,curves:wCurves,compare:wCompare,stress:wStress,align:wAlign,mask:wMask};
+function init(){
+  $$('[data-fig]').forEach(el=>{el.innerHTML=el.dataset.fig.split(',').map(k=>FIGS[k]||'').join('');});
+  fillCode();
+  $$('[data-w]').forEach(el=>{const k=el.dataset.w;if(k==='quiz'){wQuiz(el,el.dataset.q);return;}if(W[k])W[k](el);});
+  wToc();
+}
+const CODE={"scene": "import cv2\nimport numpy as np\nimport matplotlib.pyplot as plt\n\ndef group_scene(h=160, w=256):\n    \"\"\"A drawn outdoor photo with three people. Returns the image, a class map and a person-id map.\"\"\"\n    img = np.zeros((h, w, 3), np.uint8)\n    classes = np.zeros((h, w), np.uint8)            # 0 sky, 1 grass, 2 tree, 3 person\n    person_id = np.zeros((h, w), np.uint8)          # 0 = not a person, 1..3 = which person\n    for y in range(h):\n        img[y] = (120 + y // 3, 180 + y // 5, 235)  # sky gradient\n    horizon = int(h * 0.55)\n    img[horizon:] = (110, 190, 100)\n    classes[horizon:] = 1\n\n    def paint(draw, color, cls, pid=0):\n        layer = np.zeros((h, w), np.uint8)\n        draw(layer, 1)\n        img[layer > 0], classes[layer > 0] = color, cls\n        if pid:\n            person_id[layer > 0] = pid\n\n    paint(lambda l, c: cv2.rectangle(l, (30, 70), (42, 125), c, -1), (110, 75, 45), 2)         # trunk\n    paint(lambda l, c: cv2.ellipse(l, (36, 55), (32, 38), 0, 0, 360, c, -1), (35, 110, 50), 2)  # crown\n    for pid, (x, foot, shirt) in enumerate([(110, 118, (200, 50, 60)), (150, 125, (60, 80, 190)),\n                                            (192, 120, (230, 170, 40))], start=1):\n        top = foot - 80\n        paint(lambda l, c: cv2.circle(l, (x, top + 10), 10, c, -1), (230, 190, 160), 3, pid)\n        paint(lambda l, c: cv2.rectangle(l, (x - 13, top + 20), (x + 13, top + 55), c, -1), shirt, 3, pid)\n        paint(lambda l, c: cv2.rectangle(l, (x - 11, top + 55), (x + 11, foot), c, -1), (50, 50, 70), 3, pid)\n    return img, classes, person_id\n\ndef box_of(mask):\n    ys, xs = np.where(mask)\n    return xs.min(), ys.min(), xs.max() - xs.min(), ys.max() - ys.min()\n\nimg, classes, person_id = group_scene()\nclass_colors = np.array([(110, 160, 255), (150, 230, 120), (20, 90, 30), (230, 40, 40)], np.uint8)\nperson_colors = [(230, 40, 40), (255, 150, 0), (180, 40, 200)]\n\nfig, ax = plt.subplots(1, 4, figsize=(16, 3.6))\nax[0].imshow(img)\nax[0].set_title('Image classification')\nax[0].text(4, 152, 'person, tree, grass, sky', color='white', backgroundcolor='black')\n\nax[1].imshow(img)\nax[1].set_title('Object detection')\nfor mask, edge in [(classes == 2, 'darkgreen')] + [(person_id == k, 'red') for k in (1, 2, 3)]:\n    ax[1].add_patch(plt.Rectangle(box_of(mask)[:2], *box_of(mask)[2:], fill=False, edgecolor=edge, lw=2))\n\nax[2].imshow(class_colors[classes])\nax[2].set_title('Semantic segmentation')\n\ninstances = class_colors[classes].copy()\nfor k, color in enumerate(person_colors, start=1):\n    instances[person_id == k] = color\nax[3].imshow(instances)\nax[3].set_title('Instance segmentation')\n\nfor a in ax:\n    a.axis('off')\nplt.show()", "data": "import os\nimport random\nimport cv2\nimport numpy as np\nimport matplotlib.pyplot as plt\nimport torch\nimport torch.nn as nn\nimport torch.nn.functional as F\nfrom torch.utils.data import DataLoader, TensorDataset\nfrom torchvision import models\n\nSEED = 42\nN_TRAIN, N_TEST = 1000, 250      # how many portraits to generate\nEPOCHS = 15                      # training epochs for each model\n\nrandom.seed(SEED)\nnp.random.seed(SEED)\ntorch.manual_seed(SEED)\ndevice = torch.device('cuda' if torch.cuda.is_available() else 'cpu')\nprint('Using device:', device)\n\n# Train and test portraits use different seeds, so no image appears in both sets\ntrain_images, train_masks = make_dataset(N_TRAIN, first_seed=0)\ntest_images, test_masks = make_dataset(N_TEST, first_seed=100_000)\n\nprint(f'Train images: {train_images.shape}, train masks: {train_masks.shape}')\nprint(f'Test images:  {test_images.shape}')\nprint(f'Mask values: {np.unique(train_masks)}')", "generator": "#@title Portrait generator (no need to read it line by line)\nimport cv2\nimport numpy as np\n\nSIZE = 128\nBIG = 2 * SIZE            # people are drawn at 2x and shrunk, which smooths the edges\n\nSKIN = [(255, 224, 196), (240, 194, 160), (222, 170, 124), (190, 130, 90), (140, 90, 60), (100, 66, 44)]\nHAIR = [(25, 22, 20), (60, 40, 30), (105, 72, 45), (205, 175, 115), (150, 70, 40), (170, 170, 170)]\n\nDEFAULTS = dict(clutter=(3, 7), gain=(0.75, 1.15), scale=(0.8, 1.1), tilt=10, occlude=0.25)\n\ndef random_color(rng):\n    hsv = np.uint8([[[rng.integers(0, 180), rng.integers(40, 230), rng.integers(60, 240)]]])\n    return tuple(int(v) for v in cv2.cvtColor(hsv, cv2.COLOR_HSV2RGB)[0, 0])\n\ndef pick(rng, options):\n    return tuple(int(v) for v in options[rng.integers(len(options))])\n\ndef make_background(rng, n_items):\n    \"\"\"Gradient plus random shapes. Some shapes copy skin and hair colors on purpose.\"\"\"\n    c1, c2 = np.array(random_color(rng), float), np.array(random_color(rng), float)\n    yy, xx = np.mgrid[:SIZE, :SIZE] / (SIZE - 1)\n    a = rng.uniform(0, 2 * np.pi)\n    t = np.clip(0.5 + 0.5 * ((xx - 0.5) * np.cos(a) + (yy - 0.5) * np.sin(a)) * 2, 0, 1)[..., None]\n    bg = (c1 * (1 - t) + c2 * t).astype(np.uint8)\n\n    for _ in range(n_items):\n        r = rng.random()\n        color = pick(rng, SKIN) if r < 0.25 else pick(rng, HAIR) if r < 0.4 else random_color(rng)\n        x, y = (int(v) for v in rng.integers(0, SIZE, 2))\n        kind = rng.integers(4)\n        if kind == 0:\n            cv2.rectangle(bg, (x, y), (x + int(rng.integers(10, 55)), y + int(rng.integers(10, 55))), color, -1)\n        elif kind == 1:\n            cv2.ellipse(bg, (x, y), (int(rng.integers(6, 28)), int(rng.integers(6, 28))), 0, 0, 360, color, -1)\n        elif kind == 2:\n            cv2.line(bg, (x, 0), (x + int(rng.integers(-10, 10)), SIZE), color, int(rng.integers(3, 12)))\n        else:\n            pts = np.array([[x, y], [x + int(rng.integers(-35, 35)), y + int(rng.integers(10, 40))],\n                            [x + int(rng.integers(-35, 35)), y + int(rng.integers(10, 40))]])\n            cv2.fillPoly(bg, [pts], color)\n    return cv2.GaussianBlur(bg, (0, 0), rng.uniform(1.0, 2.5))      # background is slightly out of focus\n\ndef draw_person(rng):\n    \"\"\"Head, hair, neck, shoulders and a simple face on a 2x canvas. Returns (rgb, alpha).\"\"\"\n    rgb = np.zeros((BIG, BIG, 3), np.uint8)\n    alpha = np.zeros((BIG, BIG), np.uint8)\n\n    def shape(fn, color, *args, **kw):\n        fn(rgb, *args, color=color, **kw)\n        fn(alpha, *args, color=255, **kw)\n\n    def ell(center, axes, color, start=0, end=360):\n        shape(lambda img, c, a, color: cv2.ellipse(img, c, a, 0, start, end, color, -1), color, center, axes)\n\n    def rect(p1, p2, color):\n        shape(lambda img, a, b, color: cv2.rectangle(img, a, b, color, -1), color, p1, p2)\n\n    def poly(pts, color):\n        shape(lambda img, p, color: cv2.fillPoly(img, [np.array(p)], color), color, pts)\n\n    cx = BIG // 2\n    skin, hair, cloth = pick(rng, SKIN), pick(rng, HAIR), random_color(rng)\n    shoulder = int(rng.uniform(0.85, 1.15) * 88)\n    style = rng.choice(['short', 'long', 'bald', 'hat'], p=[0.4, 0.35, 0.1, 0.15])\n\n    if style == 'long':\n        ell((cx, 125), (44, 64), hair)                                   # hair behind the head\n    ell((cx, 205), (shoulder, 42), cloth)                               # shoulders\n    rect((cx - shoulder, 205), (cx + shoulder, BIG - 1), cloth)\n    rect((cx - 12, 130), (cx + 12, 175), tuple(int(v * 0.88) for v in skin))   # neck\n    if rng.random() < 0.5:\n        poly([(cx - 16, 172), (cx + 16, 172), (cx, 205)], skin)         # V neck\n    ell((cx - 34, 106), (6, 10), skin)                                  # ears\n    ell((cx + 34, 106), (6, 10), skin)\n    ell((cx, 100), (34, 44), skin)                                      # head\n\n    if style in ('short', 'long'):\n        ell((cx, 92), (37, 40), hair, 180, 360)                         # hair on top\n    elif style == 'hat':\n        hat = random_color(rng)\n        ell((cx, 84), (38, 34), hat, 180, 360)\n        rect((cx - 40, 82), (cx + 40, 90), hat)\n\n    dark = (40, 30, 30)\n    for s in (-1, 1):                                                   # eyes\n        ell((cx + s * 13, 102), (4, 4), dark)\n    ell((cx, 126), (9, 4), (150, 60, 60), 0, 180)                       # mouth\n    if rng.random() < 0.25:                                             # glasses\n        for s in (-1, 1):\n            shape(lambda img, c, r, color: cv2.circle(img, c, r, color, 2), dark, (cx + s * 13, 102), 10)\n        shape(lambda img, a, b, color: cv2.line(img, a, b, color, 2), dark, (cx - 3, 102), (cx + 3, 102))\n    return rgb, alpha\n\ndef make_portrait(seed, **overrides):\n    \"\"\"One 128 x 128 portrait and its mask (0 = background, 255 = person). Same seed, same image.\"\"\"\n    cfg = {**DEFAULTS, **overrides}\n    rng = np.random.default_rng(seed)\n\n    # Person: draw, then tilt, scale and shift. BORDER_REPLICATE keeps the body reaching the bottom edge.\n    rgb, alpha = draw_person(rng)\n    M = cv2.getRotationMatrix2D((BIG // 2, 170), rng.uniform(-cfg['tilt'], cfg['tilt']), rng.uniform(*cfg['scale']))\n    M[:, 2] += (rng.uniform(-30, 30), rng.uniform(-10, 25))\n    rgb = cv2.warpAffine(rgb, M, (BIG, BIG), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)\n    alpha = cv2.warpAffine(alpha, M, (BIG, BIG), flags=cv2.INTER_LINEAR, borderMode=cv2.BORDER_REPLICATE)\n    a = cv2.resize(alpha, (SIZE, SIZE), interpolation=cv2.INTER_AREA)[..., None] / 255.0\n    fg = cv2.resize((rgb * (alpha[..., None] / 255.0)).astype(np.float32), (SIZE, SIZE), interpolation=cv2.INTER_AREA)\n\n    bg = make_background(rng, int(rng.integers(cfg['clutter'][0], cfg['clutter'][1] + 1))).astype(np.float32)\n    img = bg * (1 - a) + fg\n    person = a[..., 0] > 0.5\n\n    # Sometimes an object (a laptop, a mug) sits in front of the person and hides part of the body\n    if rng.random() < cfg['occlude']:\n        occ = np.zeros((SIZE, SIZE), np.uint8)\n        x, y = int(rng.integers(15, 100)), int(rng.integers(85, 118))\n        w, h = int(rng.integers(18, 45)), int(rng.integers(12, 30))\n        cv2.rectangle(occ, (x, y), (x + w, y + h), 255, -1)\n        img[occ > 0] = random_color(rng)\n        person &= occ == 0\n\n    # Lighting and sensor noise\n    side = np.linspace(-1, 1, SIZE)[None, :, None]\n    img = img * rng.uniform(*cfg['gain']) * (1 + rng.uniform(-0.2, 0.2) * side)\n    img = img + rng.normal(0, rng.uniform(1, 5), img.shape)\n    return np.clip(img, 0, 255).astype(np.uint8), (person * 255).astype(np.uint8)\n\ndef make_dataset(n, first_seed=0, **overrides):\n    pairs = [make_portrait(first_seed + i, **overrides) for i in range(n)]\n    return np.stack([p[0] for p in pairs]), np.stack([p[1] for p in pairs])", "balance": "X_train, y_train = train_images, (train_masks > 0).astype(np.uint8)    # 1 = person, 0 = background\nX_test, y_test = test_images, (test_masks > 0).astype(np.uint8)\n\nY_t = F.one_hot(torch.from_numpy(y_train[:3]).long(), num_classes=2).numpy()\nprint(Y_t.shape)\n\nshare = y_train.mean(axis=(1, 2))\nprint(f'Person pixels per image: mean {share.mean():.1%}, min {share.min():.1%}, max {share.max():.1%}')\nprint(f'A model that predicts background everywhere gets {1 - y_train.mean():.1%} pixel accuracy')", "convt": "def conv_t_out(n, k, s, p=0):\n    return (n - 1) * s - 2 * p + k\n\nfor n, k, s, p in [(3, 2, 2, 0), (3, 2, 1, 0), (3, 2, 2, 1), (4, 3, 2, 0), (4, 3, 2, 1)]:\n    layer = nn.ConvTranspose2d(1, 1, kernel_size=k, stride=s, padding=p)\n    real = layer(torch.zeros(1, 1, n, n)).shape[-1]\n    print(f'input {n}, kernel {k}, stride {s}, padding {p}: formula {conv_t_out(n, k, s, p)}, PyTorch {real}')", "metrics": "def dice(pred, target, smooth=1.0):\n    pred, target = pred.float().flatten(), target.float().flatten()\n    overlap = (pred * target).sum()\n    return (2 * overlap + smooth) / (pred.sum() + target.sum() + smooth)\n\ndef iou(pred, target, smooth=1.0):\n    pred, target = pred.float().flatten(), target.float().flatten()\n    overlap = (pred * target).sum()\n    return (overlap + smooth) / (pred.sum() + target.sum() - overlap + smooth)\n\n# Small example with 4 x 4 masks (1 = person)\nt = torch.tensor([[0, 0, 0, 0], [0, 1, 1, 0], [0, 1, 1, 0], [0, 0, 0, 0]])\np = torch.tensor([[0, 0, 0, 0], [0, 1, 1, 1], [0, 1, 1, 1], [0, 0, 0, 0]])\n\nd, i = dice(p, t, smooth=0).item(), iou(p, t, smooth=0).item()\nprint(f'Dice {d:.3f}, IoU {i:.3f}, IoU from Dice {d / (2 - d):.3f}')", "helpers": "MEAN = torch.tensor([0.485, 0.456, 0.406], device=device).view(1, 3, 1, 1)\nSTD = torch.tensor([0.229, 0.224, 0.225], device=device).view(1, 3, 1, 1)\n\ndef prep(x):\n    \"\"\"uint8 batch (N, H, W, 3) -> normalized float tensor (N, 3, H, W).\"\"\"\n    x = x.to(device).permute(0, 3, 1, 2).float() / 255\n    return (x - MEAN) / STD\n\ndef make_loader(X, y, shuffle, batch_size=32):\n    return DataLoader(TensorDataset(torch.from_numpy(X), torch.from_numpy(y)), batch_size=batch_size,\n                      shuffle=shuffle, generator=torch.Generator().manual_seed(SEED))\n\ntrain_dl = make_loader(X_train, y_train, shuffle=True)\ntest_dl = make_loader(X_test, y_test, shuffle=False)\n\nce_loss = nn.CrossEntropyLoss()\n\ndef seg_loss(logits, target):\n    person_prob = logits.softmax(dim=1)[:, 1]\n    return ce_loss(logits, target) + (1 - dice(person_prob, target == 1))\n\ndef fit(model, epochs=EPOCHS, lr=1e-3, train_dl=train_dl, test_dl=test_dl):\n    opt = torch.optim.Adam([p for p in model.parameters() if p.requires_grad], lr=lr)\n    hist = {'loss': [], 'val_loss': [], 'val_dice': [], 'val_acc': []}\n\n    for epoch in range(epochs):\n        model.train()\n        total = 0.0\n        for xb, yb in train_dl:\n            xb, yb = prep(xb), yb.to(device).long()\n            loss = seg_loss(model(xb), yb)\n            opt.zero_grad()\n            loss.backward()\n            opt.step()\n            total += loss.item() * len(xb)\n        hist['loss'].append(total / len(train_dl.dataset))\n\n        model.eval()\n        val_loss, overlap, pred_area, true_area, correct, pixels = 0.0, 0, 0, 0, 0, 0\n        with torch.no_grad():\n            for xb, yb in test_dl:\n                xb, yb = prep(xb), yb.to(device).long()\n                logits = model(xb)\n                pred = logits.argmax(dim=1)\n                val_loss += seg_loss(logits, yb).item() * len(xb)\n                overlap += ((pred == 1) & (yb == 1)).sum().item()\n                pred_area += (pred == 1).sum().item()\n                true_area += (yb == 1).sum().item()\n                correct += (pred == yb).sum().item()\n                pixels += yb.numel()\n        hist['val_loss'].append(val_loss / len(test_dl.dataset))\n        hist['val_dice'].append((2 * overlap + 1) / (pred_area + true_area + 1))\n        hist['val_acc'].append(correct / pixels)\n        print(f\"epoch {epoch + 1:2d}  loss {hist['loss'][-1]:.4f}  val_loss {hist['val_loss'][-1]:.4f}  \"\n              f\"val_dice {hist['val_dice'][-1]:.4f}  val_acc {hist['val_acc'][-1]:.4f}\")\n    return hist\n\ndef plot_history(hist):\n    fig, ax = plt.subplots(1, 2, figsize=(10, 3.5))\n    ax[0].plot(hist['loss'], label='train')\n    ax[0].plot(hist['val_loss'], label='test')\n    ax[0].set_title('Loss')\n    ax[0].legend()\n    ax[1].plot(hist['val_dice'], label='Dice')\n    ax[1].plot(hist['val_acc'], label='Pixel accuracy')\n    ax[1].set_title('Test metrics')\n    ax[1].legend()\n    plt.show()\n\ndef predict(model, X, batch_size=32):\n    model.eval()\n    out = []\n    with torch.no_grad():\n        for i in range(0, len(X), batch_size):\n            xb = prep(torch.from_numpy(X[i:i + batch_size]))\n            out.append(model(xb).argmax(dim=1).cpu().numpy())\n    return np.concatenate(out)\n\ndef show_portrait(model, X, y, n=5):\n    preds = predict(model, X[:n])\n    titles = ['Original Image', 'Ground Truth', 'Predicted Mask', 'Portrait Output']\n    fig, ax = plt.subplots(n, 4, figsize=(12, 2.4 * n))\n    for i in range(n):\n        blurred = cv2.GaussianBlur(X[i], (21, 21), 0)\n        portrait = np.where(preds[i][:, :, None] == 1, X[i], blurred)\n        for j, im in enumerate([X[i], y[i], preds[i], portrait]):\n            ax[i][j].imshow(im)\n            ax[i][j].axis('off')\n            if i == 0:\n                ax[i][j].set_title(titles[j])\n    plt.show()", "fcn": "class FCN8(nn.Module):\n    def __init__(self, n_classes=2, pretrained=True):\n        super().__init__()\n        weights = models.VGG16_Weights.IMAGENET1K_V1 if pretrained else None\n        feats = models.vgg16(weights=weights).features\n\n        # Encoder: VGG-16 split at pool3, pool4 and pool5, frozen\n        self.to_pool3 = feats[:17]      # 1/8 resolution,  256 channels\n        self.to_pool4 = feats[17:24]    # 1/16 resolution, 512 channels\n        self.to_pool5 = feats[24:]      # 1/32 resolution, 512 channels\n        for p in self.parameters():\n            p.requires_grad = False\n\n        # Decoder\n        self.conv6 = nn.Sequential(nn.Conv2d(512, 4096, 7, padding=3), nn.ReLU(inplace=True))\n        self.conv7 = nn.Sequential(nn.Conv2d(4096, 4096, 1), nn.ReLU(inplace=True))\n        self.score7 = nn.Conv2d(4096, n_classes, 1)\n        self.score4 = nn.Conv2d(512, n_classes, 1)\n        self.score3 = nn.Conv2d(256, n_classes, 1)\n        self.up2_a = nn.ConvTranspose2d(n_classes, n_classes, kernel_size=2, stride=2, bias=False)\n        self.up2_b = nn.ConvTranspose2d(n_classes, n_classes, kernel_size=2, stride=2, bias=False)\n        self.up8 = nn.ConvTranspose2d(n_classes, n_classes, kernel_size=8, stride=8, bias=False)\n\n    def forward(self, x):\n        p3 = self.to_pool3(x)\n        p4 = self.to_pool4(p3)\n        p5 = self.to_pool5(p4)\n\n        x = self.score7(self.conv7(self.conv6(p5)))\n        x = self.up2_a(x) + self.score4(p4)     # 2x upsample, add pool4\n        x = self.up2_b(x) + self.score3(p3)     # 2x upsample, add pool3\n        return self.up8(x)                      # 8x upsample to input size\n\ntorch.manual_seed(SEED)\nfcn = FCN8(pretrained=True).to(device)\n\nx = prep(torch.from_numpy(X_train[:2]))\nfcn.eval()\nwith torch.no_grad():\n    p3 = fcn.to_pool3(x)\n    p4 = fcn.to_pool4(p3)\n    p5 = fcn.to_pool5(p4)\n    c7 = fcn.conv7(fcn.conv6(p5))\n    print('pool3', tuple(p3.shape), '| pool4', tuple(p4.shape), '| pool5', tuple(p5.shape))\n    print('conv7', tuple(c7.shape), '| output', tuple(fcn(x).shape))\n\nprint(f\"Trainable parameters: {sum(p.numel() for p in fcn.parameters() if p.requires_grad):,}\")\n\nfcn_hist = fit(fcn)\nplot_history(fcn_hist)\ntorch.save(fcn.state_dict(), 'fcn.pt')", "unet": "def double_conv(c_in, c_out):\n    return nn.Sequential(\n        nn.Conv2d(c_in, c_out, 3, padding=1), nn.BatchNorm2d(c_out), nn.ReLU(inplace=True),\n        nn.Conv2d(c_out, c_out, 3, padding=1), nn.BatchNorm2d(c_out), nn.ReLU(inplace=True),\n    )\n\nclass UpBlock(nn.Module):\n    def __init__(self, c_in, c_out):\n        super().__init__()\n        self.up = nn.Sequential(nn.Upsample(scale_factor=2),\n                                nn.Conv2d(c_in, c_out, 3, padding=1), nn.ReLU(inplace=True))\n        self.conv = double_conv(2 * c_out, c_out)\n\n    def forward(self, x, skip):\n        x = self.up(x)\n        return self.conv(torch.cat([x, skip], dim=1))      # skip connection by concatenation\n\nclass UNet(nn.Module):\n    def __init__(self, n_classes=2, base=32):\n        super().__init__()\n        b = base\n        self.enc1 = double_conv(3, b)\n        self.enc2 = double_conv(b, 2 * b)\n        self.enc3 = double_conv(2 * b, 4 * b)\n        self.enc4 = double_conv(4 * b, 8 * b)\n        self.bottleneck = double_conv(8 * b, 16 * b)\n        self.pool = nn.MaxPool2d(2)\n\n        self.dec4 = UpBlock(16 * b, 8 * b)\n        self.dec3 = UpBlock(8 * b, 4 * b)\n        self.dec2 = UpBlock(4 * b, 2 * b)\n        self.dec1 = UpBlock(2 * b, b)\n        self.head = nn.Conv2d(b, n_classes, 1)\n\n    def forward(self, x):\n        e1 = self.enc1(x)\n        e2 = self.enc2(self.pool(e1))\n        e3 = self.enc3(self.pool(e2))\n        e4 = self.enc4(self.pool(e3))\n        b = self.bottleneck(self.pool(e4))\n\n        d4 = self.dec4(b, e4)\n        d3 = self.dec3(d4, e3)\n        d2 = self.dec2(d3, e2)\n        d1 = self.dec1(d2, e1)\n        return self.head(d1)\n\ntorch.manual_seed(SEED)\nunet = UNet().to(device)\n\nunet.eval()\nwith torch.no_grad():\n    print('output', tuple(unet(prep(torch.from_numpy(X_train[:2]))).shape))\nprint(f\"Trainable parameters: {sum(p.numel() for p in unet.parameters() if p.requires_grad):,}\")\n\nunet_hist = fit(unet)\nplot_history(unet_hist)\ntorch.save(unet.state_dict(), 'unet.pt')", "evalu": "def evaluate(model, X, y):\n    pred, true = predict(model, X) == 1, y == 1\n    wrong = pred != true\n    k = np.ones((7, 7), np.uint8)                                     # 3 pixels on each side of the true edge\n    edge = np.stack([cv2.dilate(m, k) - cv2.erode(m, k) for m in y]) > 0\n    return {'Dice': 2 * (pred & true).sum() / (pred.sum() + true.sum()),\n            'IoU': (pred & true).sum() / (pred | true).sum(),\n            'Pixel accuracy': 1 - wrong.mean(),\n            'Errors within 3 px of the edge': (wrong & edge).sum() / wrong.sum()}\n\nrows = {name: evaluate(m, X_test, y_test) for name, m in [('FCN-8', fcn), ('U-Net', unet)]}\nprint(f\"{'':<32}\" + ''.join(f'{name:>10}' for name in rows))\nfor metric in next(iter(rows.values())):\n    print(f'{metric:<32}' + ''.join(f'{r[metric]:>10.3f}' for r in rows.values()))", "stress": "STRESS = {\n    'Like training':    {},\n    'Busy background':  dict(clutter=(12, 16)),\n    'Dim light':        dict(gain=(0.35, 0.55)),\n    'Far from camera':  dict(scale=(0.5, 0.65)),\n    'Strong tilt':      dict(tilt=35),\n    'Object in front':  dict(occlude=1.0),\n}\n\ndef stress_test(model, n=150):\n    scores = {}\n    for name, cfg in STRESS.items():\n        X, M = make_dataset(n, first_seed=200_000, **cfg)\n        pred, true = predict(model, X) == 1, M > 0\n        scores[name] = (2 * (pred & true).sum() + 1) / (pred.sum() + true.sum() + 1)\n        print(f'{name:<18} Dice {scores[name]:.3f}')\n    return scores\n\nunet_scores = stress_test(unet)\n\n# Add harder portraits to the training set, retrain, and run the same stress test again\nX_hard, M_hard = make_dataset(400, first_seed=300_000, clutter=(8, 16), gain=(0.35, 1.15), scale=(0.5, 1.1), tilt=30)\nhard_dl = make_loader(np.concatenate([X_train, X_hard]),\n                      np.concatenate([y_train, (M_hard > 0).astype(np.uint8)]), shuffle=True)\n\ntorch.manual_seed(SEED)\nunet_hard = UNet().to(device)\nfit(unet_hard, train_dl=hard_dl)\nunet_hard_scores = stress_test(unet_hard)", "photo": "from PIL import Image\n\nseg_weights = models.segmentation.LRASPP_MobileNet_V3_Large_Weights.DEFAULT\nproduction = models.segmentation.lraspp_mobilenet_v3_large(weights=seg_weights).eval().to(device)\nPERSON = seg_weights.meta['categories'].index('person')\n\ndef compare_on_photo(photo):\n    img = Image.open(photo).convert('RGB')\n    small = np.array(img.resize((128, 128)))\n    ours = predict(unet, small[None])[0] == 1\n\n    with torch.no_grad():\n        out = production(seg_weights.transforms()(img)[None].to(device))['out']\n    theirs = out.argmax(1)[0].cpu().numpy() == PERSON\n    theirs = cv2.resize(theirs.astype(np.uint8), (128, 128), interpolation=cv2.INTER_NEAREST) == 1\n\n    blurred = cv2.GaussianBlur(small, (21, 21), 0)\n    panels = [small, np.where(ours[..., None], small, blurred), np.where(theirs[..., None], small, blurred)]\n    fig, ax = plt.subplots(1, 3, figsize=(11, 4))\n    for a, im, t in zip(ax, panels, ['Your photo', 'Our U-Net', 'Pretrained production model']):\n        a.imshow(im)\n        a.set_title(t)\n        a.axis('off')\n    plt.show()\n\ntry:\n    from google.colab import files\n    photo = next(iter(files.upload()))\nexcept ImportError:\n    photo = 'my_photo.jpg'          # outside Colab, put a photo next to the notebook\ncompare_on_photo(photo)"};
+init();
+
+})();
+</script>
+</body>
+</html>
